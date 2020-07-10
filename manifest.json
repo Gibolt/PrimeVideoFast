@@ -10,7 +10,8 @@
 	},
 	"browser_action": {
 		"default_title": "__MSG_extension_name__",
-		"default_icon": "img/temp_icon.png"
+		"default_icon": "img/temp_icon.png",
+		"default_popup": "popup.html"
 	},
 	"content_scripts": [
 		{

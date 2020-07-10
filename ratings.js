@@ -4,7 +4,6 @@ const ratingsHash = {}
 
 // API Constants
 const MOVIE_API_DOMAIN = "https://www.omdbapi.com/"
-const API_KEY = "" // TODO: Make it a setting
 const NO_MOVIE_ERROR = "Movie not found!"
 const NO_SERIES_ERROR = "Series not found!"
 const TYPE_MOVIE = "movie"
@@ -74,7 +73,7 @@ function getTitle(card) {
 }
 
 function getSeriesTitle(rawTitle) {
-	const title = rawTitle.replace(SERIES_REGEX, "")
+	const title = rawTitle.replace(SERIES_REGEX, "")?.trim() ?? ""
 	log(`Cleaned Series title "${title}" from "${rawTitle}"`)
 	return title
 }
@@ -114,6 +113,9 @@ function fetchRatings(card) {
 	const title = getTitle(card)
 	if (!title) return
 
+	const apikey = settings.get(Setting.OmdbApiKey)
+	if (!apikey) return
+
 	const existingData = ratingsHash[title]
 	if (existingData !== undefined) {
 		if (existingData != null) renderRating(title)
@@ -127,23 +129,22 @@ function fetchRatings(card) {
 	const realTitle = (type === TYPE_SERIES) ? getSeriesTitle(title) : title
 
 	const params = {
-		apikey: API_KEY,
+		apikey,
 		t: realTitle,
 		...(year && {y: year}),
 		type,
 		tomatoes: true
 	}
-	const url = new URL(MOVIE_API_DOMAIN)
-	url.search = new URLSearchParams(params).toString()
 
-	fetch(url)
+	urlWithParams(MOVIE_API_DOMAIN, params)
+		.fetch()
 		.then(data => data.json())
 		.then(json => {
 			ratingsHash[title] = json
-			const error = json.Error
-			if (error === NO_MOVIE_ERROR || error === NO_SERIES_ERROR) return
+			log('Request made with JSON response', json)
 
-			log('request succeeded with JSON response', json)
+			const error = json.Error
+			// if (error === NO_MOVIE_ERROR || error === NO_SERIES_ERROR) return
 
 			renderRating(title)
 		}).catch(function (error) {
@@ -153,6 +154,14 @@ function fetchRatings(card) {
 
 function getRottenTomatoesRating(json) {
 	return json?.Ratings?.find(score => score.Source === ROTTEN_TOMATO_API_SOURCE)?.Value || null
+}
+
+function urlWithParams(uri, params = {}) {
+	const url = new URL(uri)
+	url.search = new URLSearchParams(params).toString()
+	return {
+		fetch: () => { return fetch(url) }
+	}
 }
 
 function renderRating(title) {
@@ -191,7 +200,10 @@ function maybeFetchRatings() {
 
 	log(`New active card: ${card} -> ${getTitle(card)}`)
 	activeCard = card
-	fetchRatings(card)
+
+	storage.load(() =>
+		fetchRatings(card)
+	)
 
 //	ratingsHash[TEST_TITLE] = TEST_DATA
 //	renderRating(TEST_TITLE)

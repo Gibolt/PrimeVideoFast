@@ -27,13 +27,10 @@ Constants.Time = Object.freeze({
 })
 
 Constants.Action = Object.freeze({
+	Change : "change",
 	Click : "click",
 	KeyDown : "keydown",
 	KeyUp : "keyup",
-	Play : "play",
-	Play : "playing",
-	Play : "loadstart",
-	DurationChange : "durationchange",
 })
 
 Constants.Event = Object.freeze({

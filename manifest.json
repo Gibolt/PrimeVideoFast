@@ -29,7 +29,8 @@
 				"chromeMessages.js",
 				"htmlElements.js",
 				"settings.js",
-				"playbackSpeed.js"
+				"playbackSpeed.js",
+				"ratings.js"
 			]
 		}
 	],

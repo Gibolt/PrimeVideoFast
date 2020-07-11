@@ -2,7 +2,7 @@
 	"manifest_version": 2,
 	"name": "__MSG_extension_name__",
 	"description": "__MSG_extension_description__",
-	"version": "0.0.1",
+	"version": "1.0.0",
 	"default_locale": "en",
 	"icons": {
 		"16": "img/temp_icon.png",
@@ -16,9 +16,21 @@
 	"content_scripts": [
 		{
 			"matches": [
-				"https://*.amazon.com/Amazon-Video/*",
 				"https://*.amazon.com/*",
+				"https://*.amazon.at/*",
+				"https://*.amazon.ca/*",
+				"https://*.amazon.cn/*",
+				"https://*.amazon.co.jp/*",
+				"https://*.amazon.co.uk/*",
+				"https://*.amazon.com.au/*",
+				"https://*.amazon.com.br/*",
+				"https://*.amazon.com.mx/*",
+				"https://*.amazon.com.nl/*",
 				"https://*.amazon.de/*",
+				"https://*.amazon.es/*",
+				"https://*.amazon.fr/*",
+				"https://*.amazon.in/*",
+				"https://*.amazon.it/*",
 				"https://*.primevideo.com/*"
 			],
 			"all_frames" : false,

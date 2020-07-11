@@ -10,6 +10,9 @@
 	"omdb_api_key_hint": {"message": "Type your key"},
 	"omdb_api_key_title": {"message": "OMDB Api Key"},
 	"omdb_register_cta": {"message": "Go Register"},
+	"omdb_edit_api_key_title": {"message": "Edit OMDB Key"},
 
+	"video_playback_speed_control_title": {"message": "Speed Controls:"},
+	"video_playback_speed_controls": {"message": "+ Increase / - Decrease"},
 	"video_playback_speed_title": {"message": "Initial Playback Rate"}
 }

@@ -41,6 +41,8 @@ const html = (() => {
 	}
 
 	const br = () => document.createElement("br")
+	const div = () => document.createElement("div")
+	const span = () => document.createElement("span")
 
 	const publicApi = {
 		style,
@@ -50,6 +52,8 @@ const html = (() => {
 		numberBox,
 		button,
 		br,
+		div,
+		span,
 	}
 	return publicApi
 })()

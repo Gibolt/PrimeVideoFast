@@ -1,6 +1,8 @@
 "use strict"
 
 const log = console.log
+const i18n = chrome.i18n.getMessage
+
 const Constants = {}
 const C = Constants
 

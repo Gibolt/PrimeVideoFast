@@ -14,6 +14,10 @@ const ROTTEN_TOMATO_API_SOURCE = "Rotten Tomatoes"
 const HOVER_CARD_CLASS = "tst-hover-container"
 const TITLE_CLASS = "tst-hover-title"
 const REVIEWS_CLASS = "tst-hover-customer-reviews"
+const MATURITY_RATING_CLASS = "tst-hover-maturity-rating"
+const SUBTITLE_INDICATOR_CLASS = "tst-hover-subtitles"
+const PLAY_BUTTON_CLASS = "tst-play-button"
+const OUTER_CARD_DETAIL_CLASS = "dv-grid-beard-info"
 
 // Extension UI Constants
 const METACRITIC_CLASS = "custom-hover-metacritic-rating"
@@ -25,13 +29,23 @@ const RATINGS_CLASS = "custom-hover-ratings"
 const RT_IMAGE = chrome.extension.getURL("img/rotten_tomatoes_favicon.jpg")
 const MC_IMAGE = chrome.extension.getURL("img/metacritic_favicon.png")
 const IMDB_IMAGE = chrome.extension.getURL("img/imdb_favicon.webp")
-const IMAGE_SIZE = 13
+const IMAGE_SIZE = "13px"
+const IMPORTANT = " !important"
 const NO_VALUE = "-"
 
 // String cleanup
 const SUFFIX_4K = "(4K UHD)"
+const SUFFIX_ULTRA_HD = "[Ultra HD]"
+const SUFFIX_EXTENDED_CUT = "(Extended Cut)"
+const SUFFIX_EXTENDED_EDITION_DASH = "- Extended Edition"
+const SUFFIX_EXTENDED_EDITION = "Extended Edition"
+const SUFFIX_BONUS_FEATURE = "(Plus Bonus Feature)"
+const PREFIX_MARVEL = "Marvel's"
+const PREFIX_JOHN_GRISHAM = "John Grisham's"
+const PREFIX_TYLER_PERRY = "Tyler Perry's"
 const NA = "N/A"
-const SERIES_REGEX = /[\s-]+Season\s+[0-9]+/
+const SERIES_REGEX = /[\s-,:]*Season\s+[0-9]+/
+const EPISODE_REGEX = /[\s-]+S[0-9]+\s+E[0-9]+/
 const YEAR_REGEX = /\s+\(([0-9]{4})\)/
 
 function isHidden(node) {
@@ -51,25 +65,65 @@ function isYear(text) {
 }
 
 function getActiveCard() {
-	var cards = document.getElementsByClassName(HOVER_CARD_CLASS)
+	const cards = document.getElementsByClassName(HOVER_CARD_CLASS)
 	for (const card of cards) {
 		if (isVisible(getTitleNode(card))) return card
 	}
 	return null
 }
 
+function findByClass(parent, className) {
+	return parent?.querySelector(`.${className}`) || null
+}
+
 function getReviewNode(card) {
-	return card?.querySelector(`.${REVIEWS_CLASS}`) || null
+	return findByClass(card, REVIEWS_CLASS)
+}
+
+function getMaturityRatingNode(card) {
+	return findByClass(card, MATURITY_RATING_CLASS)
+}
+
+function getSubtitleIndicatorNode(card) {
+	return findByClass(card, SUBTITLE_INDICATOR_CLASS)
+}
+
+function getPlayButtonNode(card) {
+	return findByClass(card, PLAY_BUTTON_CLASS)
+}
+
+function getOuterVideoDetailDiv(card) {
+	return findByClass(card, OUTER_CARD_DETAIL_CLASS)
+}
+
+function getInnerVideoDetailDiv(card) {
+	return getReviewNode(card)?.parentElement?.parentElement
+		?? getMaturityRatingNode(card)?.parentElement?.parentElement
+		?? getSubtitleIndicatorNode(card)?.parentElement?.parentElement
+		?? null
 }
 
 function getTitle(card) {
 	let title = getTitleNode(card)?.innerText
 	if (!title) return
 
-	if (YEAR_REGEX.test(title) && title.match(YEAR_REGEX)[1] === getYear(card)) {
-		title = title.replace(YEAR_REGEX, "").trim()
+	if (YEAR_REGEX.test(title)) {
+		const year = getYear(card)
+		if (!year || title.match(YEAR_REGEX)[1] === year) {
+			title = title.replace(YEAR_REGEX, "").trim()
+		}
 	}
-	return title.replace(SUFFIX_4K, "")
+	return title
+		.replace(SUFFIX_4K, "")
+		.replace(SUFFIX_ULTRA_HD, "")
+		.replace(SUFFIX_EXTENDED_CUT, "")
+		.replace(SUFFIX_EXTENDED_EDITION_DASH, "")
+		.replace(SUFFIX_EXTENDED_EDITION, "")
+		.replace(SUFFIX_BONUS_FEATURE, "")
+		.replace(PREFIX_MARVEL, "")
+		.replace(PREFIX_JOHN_GRISHAM, "")
+		.replace(PREFIX_TYLER_PERRY, "")
+		.trim()
 }
 
 function getSeriesTitle(rawTitle) {
@@ -87,26 +141,45 @@ function getYear(card) {
 }
 
 function getYearNode(card) {
-	const nextElement = getReviewNode(card)?.parentElement?.parentElement?.nextElementSibling
-	return getYearNodeRecursive(nextElement)
+	const children = getInnerVideoDetailDiv(card)?.children ?? []
+	for (const child of children) {
+		const nodeText = child?.innerText
+		if (isYear(nodeText)) return child
+	}
+	return null
 }
 
-function getYearNodeRecursive(sibling) {
-	if (!sibling) return null
-
-	const nodeText = sibling?.innerText
-	if (isYear(nodeText)) return sibling
-	return getYearNodeRecursive(sibling.nextElementSibling)
+function hasSeasonNode(card) {
+	const children = getOuterVideoDetailDiv(card)?.children ?? []
+	for (const child of children) {
+		const nodeText = child?.innerText ?? ""
+		if (SERIES_REGEX.test(nodeText)) return child
+	}
+	return null
 }
 
 function isTvSeries(card) {
 	const title = getTitle(card)
 	if (SERIES_REGEX.test(title)) return true
-	return false
+
+	if (hasSeasonNode(card)) return true
+
+	const playText = getPlayButtonNode(card)?.parentNode?.innerText ?? ""
+	return EPISODE_REGEX.test(playText)
 }
 
 function cleanScore(score) {
 	return (!score || score === NA) ? NO_VALUE : score
+}
+
+function maybeRemoveImdbSpan(detailDiv) {
+	if (!detailDiv) return
+	for (const child of detailDiv.children) {
+		if (child.innerText?.includes("IMDb")) {
+			child.remove()
+			return
+		}
+	}
 }
 
 function fetchRatings(card) {
@@ -125,35 +198,42 @@ function fetchRatings(card) {
 	ratingsHash[title] = null
 
 	const year = getYear(card)
-	const type = isTvSeries(card) ? TYPE_SERIES : TYPE_MOVIE
-	const realTitle = (type === TYPE_SERIES) ? getSeriesTitle(title) : title
+	const isSeries = isTvSeries(card)
+	const type = isSeries ? TYPE_SERIES : TYPE_MOVIE
+	const realTitle = isSeries ? getSeriesTitle(title) : title
 
 	const params = {
 		apikey,
 		t: realTitle,
-		...(year && {y: year}),
+		...(year && !isSeries && {y: year}),
 		type,
 		tomatoes: true
 	}
 
-	urlWithParams(MOVIE_API_DOMAIN, params)
-		.fetch()
-		.then(data => data.json())
-		.then(json => {
-			ratingsHash[title] = json
-			log('Request made with JSON response', json)
+	fetchOmdbResult(params, json => {
+		ratingsHash[title] = json
+		log("Request made with params", params)
+		log("Request made with JSON response", json)
 
-			const error = json.Error
-			// if (error === NO_MOVIE_ERROR || error === NO_SERIES_ERROR) return
+		// const error = json.Error
+		// if (error === NO_MOVIE_ERROR || error === NO_SERIES_ERROR) return
 
-			renderRating(title)
-		}).catch(function (error) {
-			log('request failed', error)
-		})
+		renderRating(title)
+	})
 }
 
 function getRottenTomatoesRating(json) {
 	return json?.Ratings?.find(score => score.Source === ROTTEN_TOMATO_API_SOURCE)?.Value || null
+}
+
+function fetchOmdbResult(params, callback) {
+	urlWithParams(MOVIE_API_DOMAIN, params)
+		.fetch()
+		.then(data => data.json())
+		.then(callback)
+		.catch(function (error) {
+			log("Request failed", error)
+		})
 }
 
 function urlWithParams(uri, params = {}) {
@@ -161,6 +241,14 @@ function urlWithParams(uri, params = {}) {
 	url.search = new URLSearchParams(params).toString()
 	return {
 		fetch: () => { return fetch(url) }
+	}
+}
+
+function dataToScores(data = {}) {
+	return {
+		metacritic : cleanScore(data.Metascore),
+		imdb : cleanScore(data.imdbRating),
+		rottenTomatoes : cleanScore(getRottenTomatoesRating(data)),
 	}
 }
 
@@ -174,24 +262,27 @@ function renderRating(title) {
 	if (card !== activeCard) return
 	if (card?.querySelector(`.${RATINGS_CLASS}`)) return
 
-	const reviewNode = getReviewNode(card)?.parentElement?.parentElement
-	log(reviewNode)
-	if (!reviewNode) return
+	const scores = dataToScores(ratings)
 
-	const metacritic = cleanScore(ratings.Metascore)
-	const imdb = cleanScore(ratings.imdbRating)
-	const rottenTomatoes = cleanScore(getRottenTomatoesRating(ratings))
+	const innerDetailDiv = getInnerVideoDetailDiv(card)
+	const outerDetailDiv = getOuterVideoDetailDiv(card)
+	log(innerDetailDiv)
+	log(outerDetailDiv)
 
-	log(`metacritic: ${metacritic}  imdb: ${imdb}  rottenTomatoes: ${rottenTomatoes}`)
+	maybeRemoveImdbSpan(innerDetailDiv)
+	maybeRemoveImdbSpan(outerDetailDiv)
+	innerDetailDiv?.prepend(createScoreSpan(scores))
+	outerDetailDiv?.prepend(createScoreSpan(scores))
 
-	const shellContainer = document.createElement('div')
-	reviewNode.after(shellContainer)
-	shellContainer.outerHTML = RATINGS_HTML
-	const ratingsContainer = card.querySelector(`.${RATINGS_CLASS}`)
-	log(ratingsContainer)
+}
+
+function createScoreSpan({metacritic, imdb, rottenTomatoes} = {}) {
+	const ratingsContainer = html.toElement(RATINGS_HTML)
 	ratingsContainer.querySelector(`.${ROTTEN_TOMATOES_CLASS}`).innerText = rottenTomatoes
 	ratingsContainer.querySelector(`.${METACRITIC_CLASS}`).innerText = metacritic
 	ratingsContainer.querySelector(`.${IMDB_CLASS}`).innerText = imdb
+	log(ratingsContainer)
+	return ratingsContainer
 }
 
 function maybeFetchRatings() {
@@ -221,12 +312,14 @@ const runRatingsCheckRepeatedly = function() {
 
 runRatingsCheckRepeatedly()
 
-const RATINGS_HTML = `<span class="${RATINGS_CLASS}" style="">
-		<img src="${RT_IMAGE}" width="${IMAGE_SIZE}" height="${IMAGE_SIZE}" style="vertical-align: middle"/>
+const IMAGE_STYLE = `"vertical-align: middle; width:${IMAGE_SIZE}${IMPORTANT}; height:${IMAGE_SIZE}${IMPORTANT}"`
+const RATINGS_HTML = `
+	<span class="${RATINGS_CLASS}" style="font-size: ${IMAGE_SIZE} !important">
+		<img src="${RT_IMAGE}" style=${IMAGE_STYLE} />
 		<span class="${ROTTEN_TOMATOES_CLASS}" style=""></span>
-		<img src="${MC_IMAGE}" width="${IMAGE_SIZE}" height="${IMAGE_SIZE}" style="vertical-align: middle"/>
+		<img src="${MC_IMAGE}" style=${IMAGE_STYLE} />
 		<span class="${METACRITIC_CLASS}" style=""></span>
-		<img src="${IMDB_IMAGE}" width="${IMAGE_SIZE}" height="${IMAGE_SIZE}" style="vertical-align: middle"/>
+		<img src="${IMDB_IMAGE}" style=${IMAGE_STYLE}/>
 		<span class="${IMDB_CLASS}" style=""></span>
 	</span>`
 

@@ -60,15 +60,19 @@ const settings = (() => {
 	// const ARRAY = [] // Define inline
 	// const OBJECT = {} // Define inline
 
-	const KEYS = Object.freeze({
-		OmdbApiKey : "omdbApiKey"
-	})
-
-	// NOTE: These must be kept sorted alphabetically
 	const settingDefaultValues = Object.freeze({
 		// Key used to access OMDB Api. Required for ratings to work
-		[KEYS.OmdbApiKey] : STRING,
+		"OmdbApiKey" : STRING,
+
+		// Key used to store OMDB results. Format: {[title + year + type]: {imdb, metacritic, rottenTomatoes, type, time}
+		"OmdbResultsHash" : {},
 	})
+
+	const KEYS = Object.keys(settingDefaultValues)
+		.reduce((keys, key) => {
+			keys[key] = key
+			return keys
+		}, {})
 
 	const settingKeyExists = function(settingName) {
 		const defaultValue = settingDefaultValues[settingName]
@@ -135,7 +139,7 @@ const settings = (() => {
 		get : getSettingValue,
 		set : setSettingValue,
 		isDefault : isDefaultValue,
-		Setting : KEYS,
+		Setting : Object.freeze(KEYS),
 	}
 	return publicApi
 })()

@@ -66,6 +66,9 @@ const settings = (() => {
 
 		// Key used to store OMDB results. Format: {[title + year + type]: {imdb, metacritic, rottenTomatoes, type, time}
 		"OmdbResultsHash" : {},
+
+		// Playback rate to set when video begins
+		"InitialPlaybackSpeed" : 1.0,
 	})
 
 	const KEYS = Object.keys(settingDefaultValues)

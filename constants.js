@@ -44,13 +44,4 @@ Constants.Event = Object.freeze({
 	}),
 })
 
-Constants.Class = Object.freeze({
-	FullOverlay : "fullScreenOverlay",
-})
-
-Constants.Timing = Object.freeze({
-	BlinkDuration : 100 * C.Time.MILLISECOND,
-	BlinkInterval : 15 * C.Time.SECOND,
-})
-
 Object.freeze(Constants)

@@ -9,15 +9,17 @@ let playbackButtonMinus = null
 let playbackSpeedIndicator = null
 let videoPlayer = null
 
-const buttons = `<div id="PlayBackRatePanel" class="PlayBackRatePanelFullScreen" style="display: inline; top: 2px; right: -44px; bottom: initial; left: initial;">
+const buttons = `
+	<div id="PlayBackRatePanel" class="PlayBackRatePanelFullScreen" style="display: inline; top: 2px; right: -44px; bottom: initial; left: initial;">
 		<button id="SpeedUp" class="btn btn-right" style="float: right; border-top-right-radius: 5px; border-bottom-right-radius: 5px;">&gt;&gt;</button>
 		<button id="PlayBackRate" class="btn" style="float: right">1.00</button>
 		<button id="SpeedDown" class="btn btn-left" style="float: right; border-top-left-radius: 5px; border-bottom-left-radius: 5px;">&lt;&lt;</button>
 	</div>`
 
 const setupVideoPlaybackControl = function() {
+	const click = C.Action.Click
 	const video = getMainVideoPlayer()
-	if (video == null || video == videoPlayer) return
+	if (video === null || video === videoPlayer) return
 
     videoPlayer = video
 
@@ -36,12 +38,8 @@ const setupVideoPlaybackControl = function() {
 	playbackSpeedIndicator = document.getElementById("PlayBackRate")
 	playbackButtonMinus = document.getElementById("SpeedDown")
 
-	playbackButtonPlus.addEventListener(C.Action.Click, () => {
-		increaseRate()
-	})
-	playbackButtonMinus.addEventListener(C.Action.Click, () => {
-		decreaseRate()
-	})
+	playbackButtonPlus.addEventListener(click, increaseRate)
+	playbackButtonMinus.addEventListener(click, decreaseRate)
 	video.addEventListener(C.Event.Media.Play, () => {
 		console.log("Video playback started")
 		updateRate()
@@ -105,7 +103,7 @@ const canUpdate = function() {
 const getMainVideoPlayer = () => {
 	const videos = document.getElementsByTagName('video')
 	if (videos.length == 0) return null
-	
+
 	for (const video of videos) {
 		if (video.className.includes("tst-video-overlay-player-html5")) continue
 		return video
@@ -117,6 +115,7 @@ const runMainFunctionRepeatedly = function() {
 	setInterval(() => {
         setupVideoPlaybackControl()
     }, 5000)
+	storage.load(() => playbackSpeed = settings.get(Setting.InitialPlaybackSpeed))
 }
 
 runMainFunctionRepeatedly()

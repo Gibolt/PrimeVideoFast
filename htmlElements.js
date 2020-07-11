@@ -24,6 +24,13 @@ const html = (() => {
 		return box
 	}
 
+	const numberBox = (value = 0) => {
+		const box = document.createElement("input")
+		box.type  = "number"
+		box.value = value
+		return box
+	}
+
 	const button = (text = "", fn = C.Noop, title = "") => {
 		const button = document.createElement("input")
 		button.type = "button"
@@ -33,12 +40,16 @@ const html = (() => {
 		return button
 	}
 
+	const br = () => document.createElement("br")
+
 	const publicApi = {
 		style,
 		toElement,
 
 		textbox,
+		numberBox,
 		button,
+		br,
 	}
 	return publicApi
 })()

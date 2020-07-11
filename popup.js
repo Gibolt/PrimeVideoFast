@@ -6,6 +6,9 @@ const createPopupUi = () => {
 	const OMDB_API_KEY_HINT = i18n("omdb_api_key_hint")
 	const myOmdbApiKey = settings.get(Setting.OmdbApiKey)
 
+	const PLAYBACK_SPEED_TITLE = i18n("video_playback_speed_title")
+	const playbackSpeed = settings.get(Setting.InitialPlaybackSpeed)
+
 	const omdbApiKeyBox = html.textbox(OMDB_API_KEY_HINT, myOmdbApiKey)
 	omdbApiKeyBox.addEventListener(C.Action.Change, () => {
 		const newValue = omdbApiKeyBox.value.trim()
@@ -18,11 +21,27 @@ const createPopupUi = () => {
 		win.focus()
 	})
 
-	html.style(omdbRegisterButton, "margin-top", "10px")
+	const playbackSpeedBox = html.numberBox(playbackSpeed)
+	playbackSpeedBox.step = 0.25
+	playbackSpeedBox.min = 0.25
+	playbackSpeedBox.max = 10
+	playbackSpeedBox.addEventListener(C.Action.Change, () => {
+		const newValue = playbackSpeedBox.valueAsNumber
+		if (isNaN(newValue)) return
+		settings.set(Setting.InitialPlaybackSpeed, newValue)
+	})
+
+	html.style(omdbRegisterButton, "margin-top", "6px")
+	html.style(omdbRegisterButton, "margin-bottom", "15px")
 
 	document.body.append(OMDB_API_KEY_TITLE)
 	document.body.append(omdbApiKeyBox)
 	document.body.append(omdbRegisterButton)
+	document.body.append(html.br())
+	document.body.append(PLAYBACK_SPEED_TITLE)
+	document.body.append(html.br())
+	document.body.append(playbackSpeedBox)
+	document.body.append(" x")
 }
 
 

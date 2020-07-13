@@ -1,6 +1,6 @@
 
 let activeCard = null
-const ratingsHash = {}
+const fetchingHash = {}
 
 // API Constants
 const MOVIE_API_DOMAIN = "https://www.omdbapi.com/"
@@ -44,7 +44,7 @@ const PREFIX_MARVEL = "Marvel's"
 const PREFIX_JOHN_GRISHAM = "John Grisham's"
 const PREFIX_TYLER_PERRY = "Tyler Perry's"
 const NA = "N/A"
-const SERIES_REGEX = /[\s-,:]*Season\s+[0-9]+/
+const SERIES_REGEX = /[\s-,:]*(Season|Series)\s+[0-9]+/
 const EPISODE_REGEX = /[\s-]+S[0-9]+\s+E[0-9]+/
 const YEAR_REGEX = /\s+\(([0-9]{4})\)/
 
@@ -97,7 +97,7 @@ function getOuterVideoDetailDiv(card) {
 }
 
 function getInnerVideoDetailDiv(card) {
-	return getReviewNode(card)?.parentElement?.parentElement
+	return getReviewNode(card)?.parentElement?.parentElement?.parentElement
 		?? getMaturityRatingNode(card)?.parentElement?.parentElement
 		?? getSubtitleIndicatorNode(card)?.parentElement?.parentElement
 		?? null
@@ -189,36 +189,43 @@ function fetchRatings(card) {
 	const apikey = settings.get(Setting.OmdbApiKey)
 	if (!apikey) return
 
-	const existingData = ratingsHash[title]
-	if (existingData !== undefined) {
-		if (existingData != null) renderRating(title)
-		return
-	}
-	// Prevent multiple queries for same title
-	ratingsHash[title] = null
-
 	const year = getYear(card)
 	const isSeries = isTvSeries(card)
 	const type = isSeries ? TYPE_SERIES : TYPE_MOVIE
+	const hashKey = videoHashKey(title, year, type)
+
+	if (fetchingHash[hashKey]) return
+
+	const existingData = getRatings(hashKey)
+	if (existingData) {
+		renderRating(hashKey)
+		return
+	}
+
+	// Prevent multiple queries for same title
+	fetchingHash[hashKey] = true
+
 	const realTitle = isSeries ? getSeriesTitle(title) : title
 
 	const params = {
 		apikey,
 		t: realTitle,
-		...(year && !isSeries && {y: year}),
+		// ...(year && !isSeries && {y: year}), // year is unreliable
 		type,
 		tomatoes: true
 	}
 
 	fetchOmdbResult(params, json => {
-		ratingsHash[title] = json
+		fetchingHash[hashKey] = false
 		log("Request made with params", params)
 		log("Request made with JSON response", json)
 
 		// const error = json.Error
 		// if (error === NO_MOVIE_ERROR || error === NO_SERIES_ERROR) return
 
-		renderRating(title)
+		const ratings = dataToScores(json, year)
+		storeRatings(ratings, hashKey)
+		renderRating(hashKey)
 	})
 }
 
@@ -244,16 +251,20 @@ function urlWithParams(uri, params = {}) {
 	}
 }
 
-function dataToScores(data = {}) {
+function dataToScores(data = {}, year) {
 	return {
+		title: data.Title,
+		year: data.Year ?? year,
+		type: data.Type,
 		metacritic : cleanScore(data.Metascore),
 		imdb : cleanScore(data.imdbRating),
 		rottenTomatoes : cleanScore(getRottenTomatoesRating(data)),
+		fetchTime : Date.now()
 	}
 }
 
-function renderRating(title) {
-	const ratings = ratingsHash[title]
+function renderRating(hashKey) {
+	const ratings = getRatings(hashKey)
 	log(`Rendering rating: ${ratings}`)
 	if (!ratings) return
 
@@ -262,8 +273,6 @@ function renderRating(title) {
 	if (card !== activeCard) return
 	if (card?.querySelector(`.${RATINGS_CLASS}`)) return
 
-	const scores = dataToScores(ratings)
-
 	const innerDetailDiv = getInnerVideoDetailDiv(card)
 	const outerDetailDiv = getOuterVideoDetailDiv(card)
 	log(innerDetailDiv)
@@ -271,8 +280,8 @@ function renderRating(title) {
 
 	maybeRemoveImdbSpan(innerDetailDiv)
 	maybeRemoveImdbSpan(outerDetailDiv)
-	innerDetailDiv?.prepend(createScoreSpan(scores))
-	outerDetailDiv?.prepend(createScoreSpan(scores))
+	innerDetailDiv?.prepend(createScoreSpan(ratings))
+	outerDetailDiv?.prepend(createScoreSpan(ratings))
 
 }
 
@@ -289,7 +298,7 @@ function maybeFetchRatings() {
 	const card = getActiveCard()
 	if (card === activeCard) return
 
-	log(`New active card: ${card} -> ${getTitle(card)}`)
+	log(`New active card: `, card, ` -> ${getTitle(card)}`)
 	activeCard = card
 
 	storage.load(() =>
@@ -298,6 +307,24 @@ function maybeFetchRatings() {
 
 //	ratingsHash[TEST_TITLE] = TEST_DATA
 //	renderRating(TEST_TITLE)
+}
+
+function storeRatings(omdbApiRatings, hashKey) {
+	if (!omdbApiRatings) return
+
+	const hash = settings.get(Setting.OmdbResultsHash)
+	hash[hashKey] = omdbApiRatings
+	settings.set(Setting.OmdbResultsHash, hash)
+}
+
+function getRatings(hashKey) {
+	return settings.get(Setting.OmdbResultsHash)?.[hashKey]
+}
+
+function videoHashKey(title = "", year = "", type) {
+	log("hashKey: ", `${title}|${year}|${type}`)
+	if (!title || !type) return null
+	return `${title}|${year}|${type}`
 }
 
 const runRatingsCheckRepeatedly = function() {

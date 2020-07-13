@@ -64,7 +64,7 @@ const settings = (() => {
 		// Key used to access OMDB Api. Required for ratings to work
 		"OmdbApiKey" : STRING,
 
-		// Key used to store OMDB results. Format: {[title + year + type]: {imdb, metacritic, rottenTomatoes, type, time}
+		// Key used to store OMDB results. Format: {[`title + year + type`]: {imdb, metacritic, rottenTomatoes, type, time}
 		"OmdbResultsHash" : {},
 
 		// Playback rate to set when video begins

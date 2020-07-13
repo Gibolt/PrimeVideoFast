@@ -26,9 +26,9 @@ const ROTTEN_TOMATOES_CLASS = "custom-hover-rotten-tomatoes-rating"
 const RATINGS_CLASS = "custom-hover-ratings"
 
 // Service Logo Constants
-const RT_IMAGE = chrome.extension.getURL("img/rotten_tomatoes_favicon.jpg")
-const MC_IMAGE = chrome.extension.getURL("img/metacritic_favicon.png")
-const IMDB_IMAGE = chrome.extension.getURL("img/imdb_favicon.webp")
+const RT_IMAGE = getImage("rotten_tomatoes_favicon.jpg")
+const MC_IMAGE = getImage("metacritic_favicon.webp")
+const IMDB_IMAGE = getImage("imdb_favicon.webp")
 const IMAGE_SIZE = "13px"
 const IMPORTANT = " !important"
 const NO_VALUE = "-"

@@ -201,6 +201,10 @@ function isTvSeries(card) {
 	return isCtaForSeries(cta)
 }
 
+function getShowType(card) {
+	return isTvSeries(card) ? TYPE_SERIES : TYPE_MOVIE
+}
+
 function cleanScore(score) {
 	return (!score || score === NA) ? NO_VALUE : score
 }
@@ -223,8 +227,7 @@ function fetchRatings(card) {
 	if (!apikey) return
 
 	const year = getYear(card)
-	const isSeries = isTvSeries(card)
-	const type = isSeries ? TYPE_SERIES : TYPE_MOVIE
+	const type = getShowType(card)
 	const hashKey = videoHashKey(title, year, type)
 
 	if (fetchingHash[hashKey]) return

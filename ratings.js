@@ -18,12 +18,14 @@ const MATURITY_RATING_CLASS = "tst-hover-maturity-rating"
 const SUBTITLE_INDICATOR_CLASS = "tst-hover-subtitles"
 const PLAY_BUTTON_CLASS = "tst-play-button"
 const OUTER_CARD_DETAIL_CLASS = "dv-grid-beard-info"
+const TOP_IMAGE_WRAPPER_CLASS = "tst-packshot-link"
 
 // Extension UI Constants
 const METACRITIC_CLASS = "custom-hover-metacritic-rating"
 const IMDB_CLASS = "custom-hover-imdb-rating"
 const ROTTEN_TOMATOES_CLASS = "custom-hover-rotten-tomatoes-rating"
 const RATINGS_CLASS = "custom-hover-ratings"
+const SCORE_SPAN_OVERLAY_CLASS = "custom-score-span-overlay"
 
 // Service Logo Constants
 const RT_IMAGE = getImage("rotten_tomatoes_favicon.jpg")
@@ -94,6 +96,10 @@ function getPlayButtonNode(card) {
 
 function getOuterVideoDetailDiv(card) {
 	return findByClass(card, OUTER_CARD_DETAIL_CLASS)
+}
+
+function getTopImageWrapperDiv(card) {
+	return findByClass(card, TOP_IMAGE_WRAPPER_CLASS)
 }
 
 function getInnerVideoDetailDiv(card) {
@@ -275,14 +281,17 @@ function renderRating(hashKey) {
 
 	const innerDetailDiv = getInnerVideoDetailDiv(card)
 	const outerDetailDiv = getOuterVideoDetailDiv(card)
-	log(innerDetailDiv)
-	log(outerDetailDiv)
+	const topImageWrapperDiv = getTopImageWrapperDiv(card)
 
 	maybeRemoveImdbSpan(innerDetailDiv)
 	maybeRemoveImdbSpan(outerDetailDiv)
 	innerDetailDiv?.prepend(createScoreSpan(ratings))
 	outerDetailDiv?.prepend(createScoreSpan(ratings))
-
+	if (!outerDetailDiv) {
+		const scoreSpan = createScoreSpan(ratings)
+		alterScoreSpanForOverlay(scoreSpan)
+		topImageWrapperDiv?.append(scoreSpan)
+	}
 }
 
 function createScoreSpan({metacritic, imdb, rottenTomatoes} = {}) {
@@ -290,8 +299,13 @@ function createScoreSpan({metacritic, imdb, rottenTomatoes} = {}) {
 	ratingsContainer.querySelector(`.${ROTTEN_TOMATOES_CLASS}`).innerText = rottenTomatoes
 	ratingsContainer.querySelector(`.${METACRITIC_CLASS}`).innerText = metacritic
 	ratingsContainer.querySelector(`.${IMDB_CLASS}`).innerText = imdb
-	log(ratingsContainer)
 	return ratingsContainer
+}
+
+function alterScoreSpanForOverlay(span) {
+	const ratings = span?.querySelector(`.${RATINGS_CLASS}`)
+	ratings?.classList?.add(SCORE_SPAN_OVERLAY_CLASS)
+	return span
 }
 
 function maybeFetchRatings() {

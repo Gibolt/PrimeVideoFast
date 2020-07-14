@@ -1,0 +1,10 @@
+.custom-score-span-overlay {
+    position         : absolute;
+    bottom           : 0px;
+    left             : 0px;
+    margin           : 5px;
+    padding          : 5px;
+    background-color : #000000aa;
+    border           : 1px #ffffff66 solid;
+    border-radius    : 3px;
+}

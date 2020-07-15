@@ -35,19 +35,29 @@ const IMAGE_SIZE = "13px"
 const IMPORTANT = " !important"
 const NO_VALUE = "-"
 
-// String cleanup
+// String cleanup general
 const SUFFIX_4K = "(4K UHD)"
 const SUFFIX_ULTRA_HD = "[Ultra HD]"
 const SUFFIX_EXTENDED_CUT = "(Extended Cut)"
+const SUFFIX_UNCENSORED = "(Uncensored)"
 const SUFFIX_EXTENDED_EDITION_DASH = "- Extended Edition"
 const SUFFIX_EXTENDED_EDITION = "Extended Edition"
 const SUFFIX_BONUS_FEATURE = "(Plus Bonus Feature)"
+const SUFFIX_ENGLISH_SUBTITLED = "(English Subtitled)"
+const NA = "N/A"
+
+// String cleanup names
+const SUFFIX_UK = "(UK)"
 const PREFIX_MARVEL = "Marvel's"
 const PREFIX_JOHN_GRISHAM = "John Grisham's"
 const PREFIX_TYLER_PERRY = "Tyler Perry's"
-const NA = "N/A"
-const SERIES_REGEX = /[\s-,:]*(Season|Series)\s+[0-9]+/
-const EPISODE_REGEX = /[\s-]+S[0-9]+\s+E[0-9]+/
+const PREFIX_ANTHONY_BOURDAIN = "Anthony Bourdain"
+
+// String cleanup regex
+const SERIES_REGEX = /[\s-,:]*(Season|Series|Volume)\s+([0-9]|One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|Eleven|Twelve|Thirteen|Fourteen|Fifteen)+/
+const SERIES_NAME_REGEX = /[\s-,:]*(The|\s|Complete)*(First|Second|Third|Fourth|Fifth|Sixth|Seventh|Eighth|Ninth|Tenth|Eleventh|Twelfth)+\s+(Season|Series)/
+const SEASON_EPISODE_REGEX = /[\s-]+S[0-9]+\s+E[0-9]+/
+const EPISODE_REGEX = /[\s-]+Episode\s+[0-9]+/
 const YEAR_REGEX = /\s+\(([0-9]{4})\)/
 
 function isHidden(node) {
@@ -66,8 +76,12 @@ function isYear(text) {
 	return !isNaN(cleanText)
 }
 
+function getAllCards() {
+	return document.getElementsByClassName(HOVER_CARD_CLASS)
+}
+
 function getActiveCard() {
-	const cards = document.getElementsByClassName(HOVER_CARD_CLASS)
+	const cards = getAllCards()
 	for (const card of cards) {
 		if (isVisible(getTitleNode(card))) return card
 	}
@@ -110,25 +124,32 @@ function getInnerVideoDetailDiv(card) {
 }
 
 function getTitle(card) {
-	let title = getTitleNode(card)?.innerText
+	const title = getTitleNode(card)?.innerText
 	if (!title) return
 
-	if (YEAR_REGEX.test(title)) {
-		const year = getYear(card)
-		if (!year || title.match(YEAR_REGEX)[1] === year) {
-			title = title.replace(YEAR_REGEX, "").trim()
-		}
-	}
+	return cleanTitle(title)
+}
+
+function cleanTitle(title) {
 	return title
+		.replace(SERIES_REGEX, "")
+		.replace(SERIES_NAME_REGEX, "")
+		.replace(EPISODE_REGEX, "")
+		.replace(YEAR_REGEX, "")
+		.replace(SERIES_NAME_REGEX, "")
 		.replace(SUFFIX_4K, "")
 		.replace(SUFFIX_ULTRA_HD, "")
 		.replace(SUFFIX_EXTENDED_CUT, "")
+		.replace(SUFFIX_UNCENSORED, "")
 		.replace(SUFFIX_EXTENDED_EDITION_DASH, "")
 		.replace(SUFFIX_EXTENDED_EDITION, "")
 		.replace(SUFFIX_BONUS_FEATURE, "")
+		.replace(SUFFIX_ENGLISH_SUBTITLED, "")
+		.replace(SUFFIX_UK, "")
 		.replace(PREFIX_MARVEL, "")
 		.replace(PREFIX_JOHN_GRISHAM, "")
 		.replace(PREFIX_TYLER_PERRY, "")
+		.replace(PREFIX_ANTHONY_BOURDAIN, "")
 		.trim()
 }
 
@@ -164,14 +185,20 @@ function hasSeasonNode(card) {
 	return null
 }
 
+function isCtaForSeries(cta) {
+	return EPISODE_REGEX.test(cta) || SEASON_EPISODE_REGEX.test(cta)
+}
+
 function isTvSeries(card) {
-	const title = getTitle(card)
+	const title = getTitleNode(card)?.innerText
 	if (SERIES_REGEX.test(title)) return true
+	if (SERIES_NAME_REGEX.test(title)) return true
+	if (EPISODE_REGEX.test(title)) return true
 
 	if (hasSeasonNode(card)) return true
 
-	const playText = getPlayButtonNode(card)?.parentNode?.innerText ?? ""
-	return EPISODE_REGEX.test(playText)
+	const cta = getPlayButtonNode(card)?.parentNode?.innerText ?? ""
+	return isCtaForSeries(cta)
 }
 
 function cleanScore(score) {
@@ -211,11 +238,9 @@ function fetchRatings(card) {
 	// Prevent multiple queries for same title
 	fetchingHash[hashKey] = true
 
-	const realTitle = isSeries ? getSeriesTitle(title) : title
-
 	const params = {
 		apikey,
-		t: realTitle,
+		t: title,
 		// ...(year && !isSeries && {y: year}), // year is unreliable
 		type,
 		tomatoes: true
@@ -351,7 +376,26 @@ const runRatingsCheckRepeatedly = function() {
 //	})
 }
 
+const renderInitialRatings = () => {
+	const cards = getAllCards()
+	for (const card of cards) {
+		const title = getTitle(card)
+		log(title, card)
+		if (!title) continue
+
+		const year = getYear(card)
+		const type = getShowType(card)
+		const hashKey = videoHashKey(title, year, type)
+
+		if (fetchingHash[hashKey]) return
+
+		const existingData = getRatings(hashKey)
+		if (existingData) renderRating(hashKey)
+	}
+}
+
 runRatingsCheckRepeatedly()
+storage.load(() => renderInitialRatings())
 
 const IMAGE_STYLE = `"vertical-align: middle; width:${IMAGE_SIZE}${IMPORTANT}; height:${IMAGE_SIZE}${IMPORTANT}"`
 const RATINGS_HTML = `
@@ -366,3 +410,58 @@ const RATINGS_HTML = `
 
 const TEST_TITLE = "Gone with the Wind"
 const TEST_DATA = {"Title":"Gone with the Wind","Year":"1939","Rated":"Passed","Released":"17 Jan 1940","Runtime":"238 min","Genre":"Drama, History, Romance, War","Director":"Victor Fleming, George Cukor, Sam Wood","Writer":"Margaret Mitchell (story of the old south \"Gone with the Wind\"), Sidney Howard (screenplay)","Actors":"Thomas Mitchell, Barbara O'Neil, Vivien Leigh, Evelyn Keyes","Plot":"A manipulative woman and a roguish man conduct a turbulent romance during the American Civil War and Reconstruction periods.","Language":"English","Country":"USA","Awards":"Won 8 Oscars. Another 12 wins & 12 nominations.","Poster":"https://m.media-amazon.com/images/M/MV5BYjUyZWZkM2UtMzYxYy00ZmQ3LWFmZTQtOGE2YjBkNjA3YWZlXkEyXkFqcGdeQXVyNzkwMjQ5NzM@._V1_SX300.jpg","Ratings":[{"Source":"Internet Movie Database","Value":"8.1/10"},{"Source":"Rotten Tomatoes","Value":"91%"},{"Source":"Metacritic","Value":"97/100"}],"Metascore":"97","imdbRating":"8.1","imdbVotes":"280,849","imdbID":"tt0031381","Type":"movie","tomatoMeter":"N/A","tomatoImage":"N/A","tomatoRating":"N/A","tomatoReviews":"N/A","tomatoFresh":"N/A","tomatoRotten":"N/A","tomatoConsensus":"N/A","tomatoUserMeter":"N/A","tomatoUserRating":"N/A","tomatoUserReviews":"N/A","tomatoURL":"http://www.rottentomatoes.com/m/gone_with_the_wind/","DVD":"07 Mar 2000","BoxOffice":"N/A","Production":"Loew&#39;s Inc.","Website":"N/A","Response":"True"}
+
+// Currently must be run from the console
+// TODO: Find a better home for unit tests
+const runAllTests = () => {
+	testTitleCleanup()
+	testSeriesTypeCheck()
+}
+
+const testTitleCleanup = () => {
+	for (const [originalTitle, expectedTitle] of Object.entries(TEST_TITLE_CASES)) {
+		const cleanedTitle = cleanTitle(originalTitle)
+		if (cleanedTitle !== expectedTitle)
+			console.error(`Expected clean title\n  "${expectedTitle}" but was \n  "${cleanedTitle}" for\n  "${originalTitle}"`)
+	}
+}
+
+const testSeriesTypeCheck = () => {
+	for (const [cta, isSeriesExpected] of Object.entries(TEST_SERIES_CHECK_CASES)) {
+		const isSeries = isCtaForSeries(cta)
+		if (isSeries !== isSeriesExpected)
+			console.error(`Expected series for "${cta}" to be ${isSeriesExpected}`)
+	}
+}
+
+// Cases to check that title cleanup is working reliably
+const TEST_TITLE_CASES = {
+	"Warehouse 13 Season 1" : "Warehouse 13",
+	"Schitt's Creek Season 1 (Uncensored)" : "Schitt's Creek",
+	"Nikita: The Complete First Season" : "Nikita",
+	"The Rockford Files, Season 1" : "The Rockford Files",
+	"Desperate Housewives Season 8" : "Desperate Housewives",
+	"Heroes Volume 1" : "Heroes",
+	"Sherlock Holmes (2009)" : "Sherlock Holmes",
+	"Murder, She Wrote - Season 1" : "Murder, She Wrote",
+	"Sneaky Pete - Season 2 (4K UHD)" : "Sneaky Pete",
+	"Dennis The Menace, Season One" : "Dennis The Menace",
+	"Marvel's Avengers [Ultra HD]" : "Avengers",
+	"Anthony Bourdain A Cook's Tour" : "A Cook's Tour",
+	"Top Gear Season 14 (UK)" : "Top Gear",
+}
+
+// Cases to handle with title cleanup that don't have an obvious solution
+const UNHANDLED_TITLE_CASES = {
+	"Pop Team Epic (Original Japanese Version)" : "Pop Team Epic",
+}
+
+// Cases to check that CTA regex can reliably determine show type
+const TEST_SERIES_CHECK_CASES = {
+	"Play" : false,
+	"Play S1 E3" : true,
+	"Play S10 E15" : true,
+	"Play Episode 1" : true,
+	"Play Episode 10" : true,
+	"Play S101 E1" : true,
+}

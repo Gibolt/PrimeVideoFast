@@ -12,7 +12,7 @@ const storage = (() => {
 		}
 
 		try {
-			chrome.storage.sync.get("settings", (storedObj) => {
+			chrome.storage.local.get("settings", (storedObj) => {
 				if (!loaded) {
 					if (storedObj && storedObj.settings) {
 						storage.settings = storedObj.settings
@@ -35,7 +35,7 @@ const storage = (() => {
 			console.error("Attempted to set setting before settings load finished")
 		}
 		storage.settings[prop] = val
-		chrome.storage.sync.set({"settings" : storage.settings}, () => {
+		chrome.storage.local.set({"settings" : storage.settings}, () => {
 			chrome.runtime.sendMessage({type : message.Type.UpdateSettings})
 			message.tabs.all({type : message.Type.UpdateSettings})
 		})

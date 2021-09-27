@@ -8,6 +8,10 @@ let playbackButtonPlus = null
 let playbackButtonMinus = null
 let playbackSpeedIndicator = null
 let videoPlayer = null
+let adChecker = null
+let preAdRate = null
+
+const adIndicatorClass = "atvwebplayersdk-adtimeindicator-text"
 
 const buttons = `
 	<div id="PlayBackRatePanel" class="PlayBackRatePanelFullScreen" style="display: inline; top: 2px; right: -44px; bottom: initial; left: initial;">
@@ -19,7 +23,11 @@ const buttons = `
 const setupVideoPlaybackControl = function() {
 	const click = C.Action.Click
 	const video = getMainVideoPlayer()
-	if (video === null || video === videoPlayer) return
+	if (video === null || video === videoPlayer) {
+		clearInterval(adChecker)
+		adChecker = null
+		return
+	}
 
     videoPlayer = video
 
@@ -57,6 +65,8 @@ const setupVideoPlaybackControl = function() {
 		updateRate()
 	})
 
+	adChecker ??= setInterval(detectAndSkipAds, 2000)
+
 	updateRate()
 }
 
@@ -78,8 +88,8 @@ const decreaseRate = function() {
 const updateRate = function() {
 	console.log(videoPlayer)
 	console.log("playbackSpeed: " + playbackSpeed)
-	if (videoPlayer != null) videoPlayer.playbackRate = playbackSpeed
-	if (playbackSpeedIndicator != null) playbackSpeedIndicator.innerText = playbackSpeed
+	if (videoPlayer !== null) videoPlayer.playbackRate = playbackSpeed
+	if (playbackSpeedIndicator !== null) playbackSpeedIndicator.innerText = playbackSpeed
 }
 
 const canUpdate = function() {
@@ -87,6 +97,24 @@ const canUpdate = function() {
 	const canChange = (now > lastChange + GAP_BETWEEN_CHANGE_MS)
 	if (canChange) lastChange = now
 	return canChange
+}
+
+const detectAndSkipAds = () => {
+	if (preAdRate !== null) return
+	const indicator = document.getElementsByClassName(adIndicatorClass)[0]?.textContent ?? ""
+	if (!indicator) return
+	const adLengthSec = indicator.match(/\d+/)?.[0] ?? 0
+	if (adLengthSec <= 2) return
+
+	const timeDelayMs = (adLengthSec - 2) * 100
+	preAdRate = playbackSpeed
+	playbackSpeed = 10
+	updateRate()
+	setTimeout(() => {
+		playbackSpeed = preAdRate
+		preAdRate = null
+		updateRate()
+	}, timeDelayMs)
 }
 
 //.btn {
@@ -102,7 +130,7 @@ const canUpdate = function() {
 
 const getMainVideoPlayer = () => {
 	const videos = document.getElementsByTagName('video')
-	if (videos.length == 0) return null
+	if (videos.length === 0) return null
 
 	for (const video of videos) {
 		if (video.className.includes("tst-video-overlay-player-html5")) continue

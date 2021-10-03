@@ -82,6 +82,7 @@ const SUFFIX_UK = "(UK)"
 const PREFIX_MARVEL = "Marvel's"
 const PREFIX_JOHN_GRISHAM = "John Grisham's"
 const PREFIX_TYLER_PERRY = "Tyler Perry's"
+const PREFIX_PHILIP_K_DICK = "Philip K. Dick's"
 const PREFIX_ANTHONY_BOURDAIN = "Anthony Bourdain"
 
 // String cleanup regex
@@ -90,6 +91,8 @@ const SERIES_NAME_REGEX = /[\s-,:]*(The|\s|Complete)*(Pilot|First|Second|Third|F
 const SEASON_EPISODE_REGEX = /[\s-]+S[0-9]+\s+E[0-9]+/
 const EPISODE_REGEX = /[\s-]+Episode\s+[0-9]+/
 const YEAR_REGEX = /\s+\(([0-9]{4})\)/
+
+const processedCards = new Set()
 
 function isHidden(node) {
 	return node.offsetParent === null
@@ -196,6 +199,7 @@ function cleanTitle(title) {
 		.replace(PREFIX_MARVEL, "")
 		.replace(PREFIX_JOHN_GRISHAM, "")
 		.replace(PREFIX_TYLER_PERRY, "")
+		.replace(PREFIX_PHILIP_K_DICK, "")
 		.replace(PREFIX_ANTHONY_BOURDAIN, "")
 	LANGUAGE_SUFFIXES.forEach(suffix => {
 		cleanTitle = cleanTitle.replace(suffix, "")
@@ -357,12 +361,12 @@ function dataToScores(data = {}, year) {
 		...(Country   && {country: Country}),
 		...(Genre     && {genre: Genre}),
 		...(Released  && {released: Released}),
-		...(Awards    && {awards: Awards}),
+		...(Awards && Awards !== NA && {awards: Awards}),
 
 		metacritic : cleanScore(Metascore),
 		imdb : cleanScore(imdbRating),
 		rottenTomatoes : cleanScore(getRottenTomatoesRating(data)),
-		...(tomatoURL && tomatoURL !== "N/A" && {tomatoURL}),
+		...(tomatoURL && tomatoURL !== NA && {tomatoURL}),
 		...(imdbID    && {imdbID}),
 		...(imdbVotes && {imdbVotes}),
 		fetchTime : Date.now()
@@ -481,9 +485,7 @@ const runRatingsCheckRepeatedly = function() {
 	setInterval(maybeFetchRatings, 750)
 }
 
-// TODO: Repeat this every 20 seconds to get paginated cards
-const renderInitialRatings = () => {
-	log("renderInitialRatings---")
+const renderAllRatings = () => {
 	renderInitialRatingsLandingPage()
 	renderInitialRatingsSecondaryPage()
 }
@@ -492,12 +494,16 @@ const renderInitialRatingsLandingPage = () => {
 	const innerCards = document.getElementsByClassName(TOP_IMAGE_WRAPPER_CLASS)
 	const hashKeys = Object.keys(settings.get(Setting.OmdbResultsHash))
 	for (const card of innerCards) {
+		if (processedCards.has(card)) continue
+		processedCards.add(card)
+
 		const ariaTitle = card?.firstElementChild?.ariaLabel
 		if (!ariaTitle) continue
 
 		const title = cleanTitle(ariaTitle)
 		if (!title) continue
 
+		// TODO: Optimize to have a one-time Set of hash names
 		const matchingKey = hashKeys.find(key => key.startsWith(`${title}|`))
 		if (!matchingKey) continue
 		// log("Adding scores for: ", title, "->", ariaTitle)
@@ -513,6 +519,9 @@ const renderInitialRatingsSecondaryPage = () => {
 	const gridCards = document.getElementsByClassName(GRID_ITEM_WRAPPER_CLASS)
 	const hashKeys = Object.keys(settings.get(Setting.OmdbResultsHash))
 	for (const card of gridCards) {
+		if (processedCards.has(card)) continue
+		processedCards.add(card)
+
 		const dirtyTitle = card?.querySelector(`.${GRID_ITEM_TITLE_CLASS}`)?.innerText
 		if (!dirtyTitle) continue
 
@@ -530,8 +539,8 @@ const renderInitialRatingsSecondaryPage = () => {
 
 runRatingsCheckRepeatedly()
 storage.load(() => {
-	setTimeout(renderInitialRatings, 2000)
-	setInterval(renderInitialRatings, 7500)
+	setTimeout(renderAllRatings, 2000)
+	setInterval(renderAllRatings, 7500)
 })
 
 const IMAGE_STYLE = `"vertical-align: middle; width:${IMAGE_SIZE}${IMPORTANT}; height:${IMAGE_SIZE}${IMPORTANT}"`

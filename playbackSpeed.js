@@ -140,6 +140,7 @@ const updateRate = function() {
 	if (playbackSpeedIndicator !== null) playbackSpeedIndicator.innerText = playbackSpeed
 }
 
+// Only allow changes outside delay
 const canUpdate = function() {
 	const now = Date.now()
 	const canChange = (now > lastChange + GAP_BETWEEN_CHANGE_MS)
@@ -173,22 +174,6 @@ const detectAndSkipPreroll = () => {
 	if (!item) return
 	console.log('Found skip: ', item)
 	setTimeout(() => item?.click(), 2000)
-}
-
-const findChildContainingText = (element, searchText, exact = false) => {
-	let items = [element]
-	let item = null
-	let lastMatch = null
-	do {
-		item = items.pop()
-		if (!item) continue
-		const text = item.innerText
-		if (exact && text === searchText) return item
-		if (!text.includes(searchText)) continue
-		lastMatch = item
-		items = [...item.children]
-	} while (items.length)
-	return lastMatch
 }
 
 //.btn {

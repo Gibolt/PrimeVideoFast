@@ -10,6 +10,14 @@ const html = (() => {
 		return node
 	}
 
+	const styles = (node, stylesObj = {}) => {
+		if (!node || !stylesObj) return node
+		for (const style in stylesObj) {
+			html.style(node, style, stylesObj[style])
+		}
+		return node
+	}
+
 	const toElement = (html = "") => {
 		const template = document.createElement("template")
 		template.innerHTML = html.trim()
@@ -54,9 +62,15 @@ const html = (() => {
 	const br = () => document.createElement("br")
 	const div = () => document.createElement("div")
 	const span = () => document.createElement("span")
+	const kbd = (text) => {
+		const kbd = document.createElement("kbd")
+		kbd.innerText = text
+		return kbd
+	}
 
 	const publicApi = {
 		style,
+		styles,
 		toElement,
 
 		textbox,
@@ -66,6 +80,7 @@ const html = (() => {
 		div,
 		span,
 		imgButton,
+		kbd,
 	}
 	return publicApi
 })()

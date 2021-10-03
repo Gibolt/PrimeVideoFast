@@ -14,5 +14,7 @@
 
 	"video_playback_speed_control_title": {"message": "Speed Controls:"},
 	"video_playback_speed_controls": {"message": "+ Increase / - Decrease"},
+	"video_playback_speed_increase": {"message": "Increase"},
+	"video_playback_speed_decrease": {"message": "Decrease"},
 	"video_playback_speed_title": {"message": "Initial Playback Rate"}
 }

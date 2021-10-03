@@ -41,9 +41,25 @@
 				"constants.js",
 				"chromeMessages.js",
 				"htmlElements.js",
+				"domUtils.js",
 				"settings.js",
 				"playbackSpeed.js",
-				"ratings.js"
+				"ratings.js",
+				"testCases.js"
+			]
+		},
+		{
+			"matches": [
+				"https://www.omdbapi.com/apikey.aspx*"
+			],
+			"all_frames" : false,
+			"js": [
+				"constants.js",
+				"chromeMessages.js",
+				"htmlElements.js",
+				"domUtils.js",
+				"settings.js",
+				"omdbApiKeyPage.js"
 			]
 		}
 	],

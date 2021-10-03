@@ -21,11 +21,14 @@ const OUTER_CARD_DETAIL_CLASS = "dv-grid-beard-info"
 const TOP_IMAGE_WRAPPER_CLASS = "tst-packshot-link" // Video grid element on landing page
 const GRID_ITEM_WRAPPER_CLASS = "dvui-beardContainer" // Video grid element on secondary pages
 const GRID_ITEM_TITLE_CLASS = "av-beard-title-link" // Video grid title on secondary pages
+const LEAVING_PRIME_TEXT = "Leaving Prime on"
 
 // Extension UI Constants
 const METACRITIC_CLASS = "custom-hover-metacritic-rating"
 const IMDB_CLASS = "custom-hover-imdb-rating"
 const ROTTEN_TOMATOES_CLASS = "custom-hover-rotten-tomatoes-rating"
+const DATE_WARNING_ICON_CLASS = "custom-hover-date-warning-icon"
+const DATE_WARNING_CLASS = "custom-hover-date-warning"
 const RATINGS_CLASS = "custom-hover-ratings"
 const SCORE_SPAN_OVERLAY_CLASS = "custom-score-span-overlay"
 
@@ -272,6 +275,7 @@ function fetchRatings(card) {
 	const type = isSeries ? TYPE_SERIES : TYPE_MOVIE
 	const hashKey = videoHashKey(title, year, type)
 
+	// TODO: Update leaving date
 	if (fetchingHash[hashKey]) return
 
 	const cachedRatings = getRatings(hashKey)
@@ -291,19 +295,33 @@ function fetchRatings(card) {
 		tomatoes: true
 	}
 
+	const leavingDate = findLeavingPrimeDate(card)
+
 	fetchOmdbResult(params, json => {
 		fetchingHash[hashKey] = false
-		log("Request made with params", params)
-		log("Request made with JSON response", json)
 
 		// const error = json.Error
 		// if (error === NO_MOVIE_ERROR || error === NO_SERIES_ERROR) return
 
 		const ratings = dataToScores(json, year)
-		log("Saved as", ratings)
+		if (leavingDate) ratings.leavingPrimeDate = leavingDate
+		log("Request:", params, "\nResponse:", json, "\nSaved as:", ratings)
 		storeRatings(ratings, hashKey)
 		renderRating(card, ratings, hashKey)
 	})
+}
+
+const findLeavingPrimeDate = (card) => {
+	const element = findChildContainingText(card, 'Leaving Prime on')
+	if (!element) return undefined
+
+	// Example: 'Jan 1' -> Jan 1 next year in ms
+	const dateText = element.innerText.replace(LEAVING_PRIME_TEXT, '').trim()
+	const now = new Date()
+	const date = new Date(dateText)
+	date.setFullYear(now.getFullYear())
+	if (date.getTime() < Date.now()) date.setFullYear(now.getFullYear() + 1)
+	return date.getTime()
 }
 
 function getRottenTomatoesRating(json) {
@@ -326,6 +344,7 @@ function urlWithParams(uri, params = {}) {
 	}
 }
 
+// Leaving date may be added later
 function dataToScores(data = {}, year) {
 	const {Title, Year, Type, Country, Genre, Released, Awards, Metascore, imdbRating, tomatoURL, imdbID, imdbVotes, Runtime} = data
 	return {
@@ -351,8 +370,6 @@ function dataToScores(data = {}, year) {
 function renderRating(card, ratings, hashKey) {
 	if (!card || !ratings) return
 
-	log(`Rendering on card: ${card}`)
-
 	const innerDetailDiv = getInnerVideoDetailDiv(card)
 	const outerDetailDiv = getOuterVideoDetailDiv(card)
 	const topImageWrapperDiv = getTopImageWrapperDiv(card)
@@ -362,7 +379,7 @@ function renderRating(card, ratings, hashKey) {
 	if (!outerDetailDiv) addScoreSpan(topImageWrapperDiv, ratings, hashKey, true)
 }
 
-function createScoreSpan({metacritic, imdb, rottenTomatoes} = {}, hashKey) {
+function createScoreSpan({metacritic, imdb, rottenTomatoes, leavingPrimeDate} = {}, hashKey) {
 	const ratingsContainer = html.toElement(RATINGS_HTML)
 	ratingsContainer.querySelector(`.${ROTTEN_TOMATOES_CLASS}`).innerText = rottenTomatoes
 	ratingsContainer.querySelector(`.${METACRITIC_CLASS}`).innerText = metacritic
@@ -372,7 +389,15 @@ function createScoreSpan({metacritic, imdb, rottenTomatoes} = {}, hashKey) {
 	ratingsSpan.addEventListener('click', () => {
 		clearRatings(hashKey)
 		document.querySelectorAll(`.${getRatingSpanClass(hashKey)}`).forEach(span => span?.remove())
-	});
+	})
+	if (leavingPrimeDate && leavingPrimeDate > Date.now()) {
+		const warningText = ratingsContainer.querySelector(`.${DATE_WARNING_CLASS}`)
+		const warningIcon = ratingsContainer.querySelector(`.${DATE_WARNING_ICON_CLASS}`)
+		const date = new Date(leavingPrimeDate)
+		warningText.innerText = `${date.toLocaleString('default', { month: 'short' })} ${date.getDate()}`
+		warningText.style.display = 'initial'
+		warningIcon.style.display = 'initial'
+	}
 	return ratingsContainer
 }
 
@@ -398,8 +423,9 @@ function maybeFetchRatings() {
 	const card = getActiveCard()
 	if (card === activeCard) return
 
-	log(`New active card: `, card, ` -> ${getTitle(card)}`)
 	activeCard = card
+	if (!card) return
+	log(`New active card: `, card, ` -> ${getTitle(card)}`)
 
 	storage.load(() => fetchRatings(card))
 
@@ -418,10 +444,7 @@ function storeRatings(omdbApiRatings, hashKey) {
 function clearRatings(hashKey) {
 	const hash = settings.get(Setting.OmdbResultsHash)
 	if (!hash[hashKey]) return
-	console.log('deleting key', hashKey, hash)
-	console.log(hash[hashKey]);
-	delete hash[hashKey];
-	console.log('after', hash[hashKey]);
+	delete hash[hashKey]
 	settings.set(Setting.OmdbResultsHash, hash)
 }
 
@@ -468,7 +491,7 @@ const renderInitialRatingsLandingPage = () => {
 
 		const matchingKey = hashKeys.find(key => key.startsWith(`${title}|`))
 		if (!matchingKey) continue
-		log("Adding scores for: ", title, "->", ariaTitle)
+		// log("Adding scores for: ", title, "->", ariaTitle)
 
 		const ratings = getRatings(matchingKey)
 		const scoreSpan = createScoreSpan(ratings, matchingKey)
@@ -489,7 +512,7 @@ const renderInitialRatingsSecondaryPage = () => {
 
 		const matchingKey = hashKeys.find(key => key.startsWith(`${title}|`))
 		if (!matchingKey) continue
-		log("Adding scores for: ", title, "->", dirtyTitle)
+		// log("Adding scores for: ", title, "->", dirtyTitle)
 
 		const ratings = getRatings(matchingKey)
 		renderRating(card, ratings)
@@ -497,17 +520,23 @@ const renderInitialRatingsSecondaryPage = () => {
 }
 
 runRatingsCheckRepeatedly()
-storage.load(() => setTimeout(renderInitialRatings, 2000))
+storage.load(() => {
+	setTimeout(renderInitialRatings, 2000)
+	setInterval(renderInitialRatings, 7500)
+})
 
 const IMAGE_STYLE = `"vertical-align: middle; width:${IMAGE_SIZE}${IMPORTANT}; height:${IMAGE_SIZE}${IMPORTANT}"`
+const HIDDEN_IMAGE_STYLE = `"vertical-align: middle; width:${IMAGE_SIZE}${IMPORTANT}; height:${IMAGE_SIZE}${IMPORTANT}; display: none"`
 const RATINGS_HTML = `
-	<span class="${RATINGS_CLASS}" style="font-size: ${IMAGE_SIZE} !important">
+	<span class="${RATINGS_CLASS}" style="font-size: ${IMAGE_SIZE}${IMPORTANT}">
 		<img src="${RT_IMAGE}" style=${IMAGE_STYLE} />
-		<span class="${ROTTEN_TOMATOES_CLASS}" style=""></span>
+		<span class="${ROTTEN_TOMATOES_CLASS}"></span>
 		<img src="${MC_IMAGE}" style=${IMAGE_STYLE} />
-		<span class="${METACRITIC_CLASS}" style=""></span>
-		<img src="${IMDB_IMAGE}" style=${IMAGE_STYLE}/>
-		<span class="${IMDB_CLASS}" style=""></span>
+		<span class="${METACRITIC_CLASS}"></span>
+		<img src="${IMDB_IMAGE}" style=${IMAGE_STYLE} />
+		<span class="${IMDB_CLASS}"></span>
+		<img class="${DATE_WARNING_ICON_CLASS}" src="${C.Icon.WARNING}" style=${HIDDEN_IMAGE_STYLE}/>
+		<span class="${DATE_WARNING_CLASS}" style="display:none"></span>
 	</span>`
 
 const TEST_TITLE = "Gone with the Wind"

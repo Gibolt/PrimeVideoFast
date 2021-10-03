@@ -8,15 +8,11 @@ const message = (() => {
 	})
 
 	const tabs = (() => {
-		const tabApiExists = function() {
-			return (chrome && chrome.tabs)
-		}
+		const tabApiExists = () => chrome?.tabs
 
 		const baseTabQuery = function(which, settings, callback = C.Noop) {
-			if (!tabApiExists()) {
-				return
-			}
-			chrome.tabs.query(which, function(tabs) {
+			if (!tabApiExists()) return
+			chrome.tabs.query(which, tabs => {
 				for (const tab of tabs) {
 					chrome.tabs.sendMessage(tab.id, settings, callback)
 				}
@@ -50,11 +46,8 @@ const message = (() => {
 	})()
 
 	// `callback` should be of form function(req, sender, res)
-	const addListener = function(callback = C.Noop) {
-		if (chrome && chrome.runtime && chrome.runtime.onMessage) {
-			chrome.runtime.onMessage.addListener(callback)
-		}
-	}
+	const addListener = (callback = C.Noop) =>
+		chrome?.runtime?.onMessage?.addListener(callback)
 
 	const publicApi = {
 		Type : TypeEnum,

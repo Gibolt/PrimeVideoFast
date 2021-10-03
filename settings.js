@@ -14,7 +14,7 @@ const storage = (() => {
 		try {
 			chrome.storage.local.get("settings", (storedObj) => {
 				if (!loaded) {
-					if (storedObj && storedObj.settings) {
+					if (storedObj?.settings) {
 						storage.settings = storedObj.settings
 					}
 					loaded = true
@@ -77,12 +77,12 @@ const settings = (() => {
 			return keys
 		}, {})
 
-	const settingKeyExists = function(settingName) {
+	const settingKeyExists = settingName => {
 		const defaultValue = settingDefaultValues[settingName]
 		return (defaultValue !== undefined && settingDefaultValues.hasOwnProperty(settingName))
 	}
 
-	const isDefaultValue = function(settingName) {
+	const isDefaultValue = settingName => {
 		if (!settingKeyExists(settingName)) return false
 
 		const defaultValue = getDefaultValue(settingName)
@@ -90,7 +90,7 @@ const settings = (() => {
 		return (defaultValue === currentValue)
 	}
 
-	const getDefaultValue = function(settingName) {
+	const getDefaultValue = settingName => {
 		const exists = settingKeyExists(settingName)
 
 		return (exists)
@@ -98,7 +98,7 @@ const settings = (() => {
 			: undefined
 	}
 
-	const setDefaultValue = function(settingName) {
+	const setDefaultValue = settingName => {
 		const exists = settingKeyExists(settingName)
 		const defaultSettingValue = getDefaultValue(settingName)
 		if (exists) {
@@ -107,7 +107,7 @@ const settings = (() => {
 		return defaultSettingValue
 	}
 
-	const canSetValue = function(settingName, newValue) {
+	const canSetValue = (settingName, newValue) => {
 		if (!settingKeyExists(settingName)) return false
 
 		const newValueType = typeof newValue
@@ -122,7 +122,7 @@ const settings = (() => {
 		return ((!isSameValue || isObjectType) && isSameType)
 	}
 
-	const getSettingValue = function(settingName) {
+	const getSettingValue = (settingName) => {
 		const exists = settingKeyExists(settingName)
 		const defaultValue = getDefaultValue(settingName)
 		if (!exists) return defaultValue
@@ -132,7 +132,7 @@ const settings = (() => {
 		return actualValue
 	}
 
-	const setSettingValue = function(settingName, newValue) {
+	const setSettingValue = (settingName, newValue) => {
 		if (!canSetValue(settingName, newValue)) return
 
 		storage.set(settingName, newValue)

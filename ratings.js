@@ -46,27 +46,31 @@ const SUFFIX_ULTRA_HD = "[Ultra HD]"
 const SUFFIX_SD_HD = "[HD/SD ver]"
 const SUFFIX_EXTENDED_CUT = "(Extended Cut)"
 const SUFFIX_UNCENSORED = "(Uncensored)"
+const SUFFIX_UNRATED = "(Unrated)"
 const SUFFIX_EXTENDED_EDITION_DASH = "- Extended Edition"
 const SUFFIX_EXTENDED_EDITION = "Extended Edition"
 const SUFFIX_BONUS_FEATURE = "(Plus Bonus Feature)"
 const SUFFIX_SILENT = "(Silent)"
 const SUFFIX_FEATURE = "(Feature)"
-const SUFFIX_ENGLISH_SUBTITLED = "(English Subtitled)"
-const SUFFIX_CHINESE_LANGUAGE = "(Chinese Language)"
-const SUFFIX_ENGLISH_LANGUAGE = "(English Language)"
-const SUFFIX_FRENCH_LANGUAGE = "(French Language)"
-const SUFFIX_ITALIAN_LANGUAGE = "(Italian Language)"
-const SUFFIX_KOREAN_LANGUAGE = "(Korean Language)"
-const SUFFIX_JAPANESE_LANGUAGE = "(Japanese Language)"
-const SUFFIX_SPANISH_LANGUAGE = "(Spanish Language)"
-const SUFFIX_ENGLISH = "(English)"
-const SUFFIX_CHINESE = "(Chinese)"
-const SUFFIX_FRENCH = "(French)"
-const SUFFIX_ITALIAN = "(Italian)"
-const SUFFIX_KOREAN = "(Korean)"
-const SUFFIX_JAPANESE = "(Japanese)"
-const SUFFIX_SPANISH = "(Spanish)"
 const NA = "N/A"
+
+const LANGUAGES = ['English', 'Chinese', 'French', 'Italian', 'Korean', 'Japanese', 'Spanish', 'Polish', 'Russian']
+const LANGUAGE_SUFFIXES = LANGUAGES.reduce((all, language) => {
+	all.push(...[
+		language,
+		`${language} Language`,
+		`${language} Subtitled`,
+		`Original ${language} Version`,
+	])
+	return all
+}, []).reduce((all, language) => {
+	all.push(...[
+		`- ${language}`,
+		`[${language}]`,
+		`(${language})`,
+	])
+	return all
+}, [])
 
 // String cleanup names
 const SUFFIX_UK = "(UK)"
@@ -77,7 +81,7 @@ const PREFIX_ANTHONY_BOURDAIN = "Anthony Bourdain"
 
 // String cleanup regex
 const SERIES_REGEX = /[\s-,:]*(Season|Series|Volume|Vol|SEASON|SERIES|VOLUME|VOL)\s+([0-9]|One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|Eleven|Twelve|Thirteen|Fourteen|Fifteen)+/
-const SERIES_NAME_REGEX = /[\s-,:]*(The|\s|Complete)*(First|Second|Third|Fourth|Fifth|Sixth|Seventh|Eighth|Ninth|Tenth|Eleventh|Twelfth)+\s+(Season|Series)/
+const SERIES_NAME_REGEX = /[\s-,:]*(The|\s|Complete)*(Pilot|First|Second|Third|Fourth|Fifth|Sixth|Seventh|Eighth|Ninth|Tenth|Eleventh|Twelfth|Thirteenth|Fourteenth|Fifteenth|Sixteenth|Seventeenth|Eighteenth|Nineteenth|Twentieth|Final|Last)+\s+(Season|Series)/
 const SEASON_EPISODE_REGEX = /[\s-]+S[0-9]+\s+E[0-9]+/
 const EPISODE_REGEX = /[\s-]+Episode\s+[0-9]+/
 const YEAR_REGEX = /\s+\(([0-9]{4})\)/
@@ -163,7 +167,7 @@ function getTitle(card) {
 }
 
 function cleanTitle(title) {
-	return title
+	let cleanTitle = title
 		.replace(SERIES_REGEX, "")
 		.replace(SERIES_NAME_REGEX, "")
 		.replace(EPISODE_REGEX, "")
@@ -177,32 +181,21 @@ function cleanTitle(title) {
 		.replace(SUFFIX_SD_HD, "")
 		.replace(SUFFIX_EXTENDED_CUT, "")
 		.replace(SUFFIX_UNCENSORED, "")
+		.replace(SUFFIX_UNRATED, "")
 		.replace(SUFFIX_EXTENDED_EDITION_DASH, "")
 		.replace(SUFFIX_EXTENDED_EDITION, "")
 		.replace(SUFFIX_BONUS_FEATURE, "")
 		.replace(SUFFIX_SILENT, "")
 		.replace(SUFFIX_FEATURE, "")
-		.replace(SUFFIX_ENGLISH_SUBTITLED, "")
-		.replace(SUFFIX_CHINESE_LANGUAGE, "")
-		.replace(SUFFIX_ENGLISH_LANGUAGE, "")
-		.replace(SUFFIX_FRENCH_LANGUAGE, "")
-		.replace(SUFFIX_ITALIAN_LANGUAGE, "")
-		.replace(SUFFIX_KOREAN_LANGUAGE, "")
-		.replace(SUFFIX_JAPANESE_LANGUAGE, "")
-		.replace(SUFFIX_SPANISH_LANGUAGE, "")
-		.replace(SUFFIX_ENGLISH, "")
-		.replace(SUFFIX_CHINESE, "")
-		.replace(SUFFIX_FRENCH, "")
-		.replace(SUFFIX_ITALIAN, "")
-		.replace(SUFFIX_KOREAN, "")
-		.replace(SUFFIX_JAPANESE, "")
-		.replace(SUFFIX_SPANISH, "")
 		.replace(SUFFIX_UK, "")
 		.replace(PREFIX_MARVEL, "")
 		.replace(PREFIX_JOHN_GRISHAM, "")
 		.replace(PREFIX_TYLER_PERRY, "")
 		.replace(PREFIX_ANTHONY_BOURDAIN, "")
-		.trim()
+	LANGUAGE_SUFFIXES.forEach(suffix => {
+		cleanTitle = cleanTitle.replace(suffix, "")
+	})
+	return cleanTitle.trim()
 }
 
 function getSeriesTitle(rawTitle) {
@@ -310,6 +303,7 @@ function fetchRatings(card) {
 		// if (error === NO_MOVIE_ERROR || error === NO_SERIES_ERROR) return
 
 		const ratings = dataToScores(json, year)
+		log("Saved as", ratings)
 		storeRatings(ratings, hashKey)
 		renderRating(card, ratings, hashKey)
 	})
@@ -324,9 +318,7 @@ function fetchOmdbResult(params, callback) {
 		.fetch()
 		.then(data => data.json())
 		.then(callback)
-		.catch(function (error) {
-			log("Request failed", error)
-		})
+		.catch(error => log("Request failed", error))
 }
 
 function urlWithParams(uri, params = {}) {
@@ -338,13 +330,23 @@ function urlWithParams(uri, params = {}) {
 }
 
 function dataToScores(data = {}, year) {
+	const {Title, Year, Type, Country, Genre, Released, Awards, Metascore, imdbRating, tomatoURL, imdbID, imdbVotes, Runtime} = data
 	return {
-		title: data.Title,
-		year: data.Year ?? year,
-		type: data.Type,
-		metacritic : cleanScore(data.Metascore),
-		imdb : cleanScore(data.imdbRating),
+		title: Title,
+		year: Year ?? year,
+		type: Type,
+		...(Runtime   && {runtime: Runtime}),
+		...(Country   && {country: Country}),
+		...(Genre     && {genre: Genre}),
+		...(Released  && {released: Released}),
+		...(Awards    && {awards: Awards}),
+
+		metacritic : cleanScore(Metascore),
+		imdb : cleanScore(imdbRating),
 		rottenTomatoes : cleanScore(getRottenTomatoesRating(data)),
+		...(tomatoURL && tomatoURL !== "N/A" && {tomatoURL}),
+		...(imdbID    && {imdbID}),
+		...(imdbVotes && {imdbVotes}),
 		fetchTime : Date.now()
 	}
 }
@@ -558,6 +560,7 @@ const TEST_TITLE_CASES = {
 	"Twilight - Extended Edition" : "Twilight",
 	"The Tale of The Princess Kaguya (Japanese Language)" : "The Tale of The Princess Kaguya",
 	"The Complete Metropolis (Silent)" : "The Complete Metropolis",
+	"Downton Abbey The Final Season" : "Downton Abbey",
 }
 
 // Cases to handle with title cleanup that don't have an obvious solution

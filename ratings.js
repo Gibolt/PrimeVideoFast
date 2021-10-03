@@ -29,6 +29,8 @@ const IMDB_CLASS = "custom-hover-imdb-rating"
 const ROTTEN_TOMATOES_CLASS = "custom-hover-rotten-tomatoes-rating"
 const DATE_WARNING_ICON_CLASS = "custom-hover-date-warning-icon"
 const DATE_WARNING_CLASS = "custom-hover-date-warning"
+const TROPHY_ICON_CLASS = "custom-hover-trophy-icon"
+const TROPHY_CLASS = "custom-hover-trophy-count"
 const RATINGS_CLASS = "custom-hover-ratings"
 const SCORE_SPAN_OVERLAY_CLASS = "custom-score-span-overlay"
 
@@ -379,7 +381,7 @@ function renderRating(card, ratings, hashKey) {
 	if (!outerDetailDiv) addScoreSpan(topImageWrapperDiv, ratings, hashKey, true)
 }
 
-function createScoreSpan({metacritic, imdb, rottenTomatoes, leavingPrimeDate} = {}, hashKey) {
+function createScoreSpan({metacritic, imdb, rottenTomatoes, leavingPrimeDate, awards} = {}, hashKey) {
 	const ratingsContainer = html.toElement(RATINGS_HTML)
 	ratingsContainer.querySelector(`.${ROTTEN_TOMATOES_CLASS}`).innerText = rottenTomatoes
 	ratingsContainer.querySelector(`.${METACRITIC_CLASS}`).innerText = metacritic
@@ -398,7 +400,24 @@ function createScoreSpan({metacritic, imdb, rottenTomatoes, leavingPrimeDate} = 
 		warningText.style.display = 'initial'
 		warningIcon.style.display = 'initial'
 	}
+	const awardsCount = parseAwardsCount(awards)
+	if (awardsCount) {
+		const trophyText = ratingsContainer.querySelector(`.${TROPHY_CLASS}`)
+		const trophyIcon = ratingsContainer.querySelector(`.${TROPHY_ICON_CLASS}`)
+		trophyText.innerText = awardsCount
+		trophyText.style.display = 'initial'
+		trophyIcon.style.display = 'initial'
+		trophyText.title = awards
+	}
 	return ratingsContainer
+}
+
+// Example: "Won 1 Oscar. 8 wins & 10 nominations total"
+const parseAwardsCount = (awards) => {
+	if (!awards) return undefined
+	const wins = awards.match(/(\d+) wins?/)?.[1] ?? 0
+	const noms = awards.match(/(\d+) nominations?/)?.[1] ?? 0
+	return (!wins && !noms) ? undefined : `${wins}/${noms}`
 }
 
 function addScoreSpan(parent, ratings, hashKey, isOverlay = false) {
@@ -530,13 +549,15 @@ const HIDDEN_IMAGE_STYLE = `"vertical-align: middle; width:${IMAGE_SIZE}${IMPORT
 const RATINGS_HTML = `
 	<span class="${RATINGS_CLASS}" style="font-size: ${IMAGE_SIZE}${IMPORTANT}">
 		<img src="${RT_IMAGE}" style=${IMAGE_STYLE} />
-		<span class="${ROTTEN_TOMATOES_CLASS}"></span>
+		<span class="${ROTTEN_TOMATOES_CLASS}" title="Rotten Tomatoes"></span>
 		<img src="${MC_IMAGE}" style=${IMAGE_STYLE} />
-		<span class="${METACRITIC_CLASS}"></span>
+		<span class="${METACRITIC_CLASS}" title="Metacritic"></span>
 		<img src="${IMDB_IMAGE}" style=${IMAGE_STYLE} />
-		<span class="${IMDB_CLASS}"></span>
+		<span class="${IMDB_CLASS}" title="IMDb"></span>
+		<img class="${TROPHY_ICON_CLASS}" src="${C.Icon.TROPHY}" style=${HIDDEN_IMAGE_STYLE}/>
+		<span class="${TROPHY_CLASS}" style="display:none"></span>
 		<img class="${DATE_WARNING_ICON_CLASS}" src="${C.Icon.WARNING}" style=${HIDDEN_IMAGE_STYLE}/>
-		<span class="${DATE_WARNING_CLASS}" style="display:none"></span>
+		<span class="${DATE_WARNING_CLASS}" style="display:none" title="Leaving Soon"></span>
 	</span>`
 
 const TEST_TITLE = "Gone with the Wind"

@@ -19,7 +19,6 @@ const SUBTITLE_INDICATOR_CLASS = "tst-hover-subtitles"
 const PLAY_BUTTON_CLASS = "tst-play-button"
 const OUTER_CARD_DETAIL_CLASS = "dv-grid-beard-info"
 const TOP_IMAGE_WRAPPER_CLASS = "tst-packshot-link" // Video grid element on landing page
-const GRID_ITEM_WRAPPER_CLASS = "dvui-beardContainer" // Video grid element on secondary pages
 const GRID_ITEM_TITLE_CLASS = "av-beard-title-link" // Video grid title on secondary pages
 const LEAVING_PRIME_TEXT = "Leaving Prime on"
 
@@ -94,15 +93,10 @@ const YEAR_REGEX = /\s+\(([0-9]{4})\)/
 
 const processedCards = new Set()
 
-function isHidden(node) {
-	return node.offsetParent === null
-}
+const isHidden = node => node.offsetParent === null
+const isVisible = node => !isHidden(node)
 
-function isVisible(node) {
-	return !isHidden(node)
-}
-
-function isYear(text) {
+const isYear = text => {
 	if (!text) return false
 	const cleanText = text.trim()
 
@@ -110,11 +104,9 @@ function isYear(text) {
 	return !isNaN(cleanText)
 }
 
-function getAllCards() {
-	return document.getElementsByClassName(HOVER_CARD_CLASS)
-}
+const getAllCards = () => document.getElementsByClassName(HOVER_CARD_CLASS)
 
-function getActiveCard() {
+const getActiveCard = () => {
 	const cards = getAllCards()
 	for (const card of cards) {
 		if (isVisible(getTitleNode(card))) return card
@@ -127,54 +119,29 @@ const getRatingSpanClass = (hashKey) => {
 	return `${RATINGS_CLASS}-${videoKey}`
 }
 
-function findByClass(parent, className) {
-	return parent?.querySelector(`.${className}`) || null
-}
+const findByClass = (parent, className) => parent?.querySelector(`.${className}`) || null
 
-function getReviewNode(card) {
-	return findByClass(card, REVIEWS_CLASS)
-}
+const getReviewNode = card => findByClass(card, REVIEWS_CLASS)
+const getMaturityRatingNode = card => findByClass(card, MATURITY_RATING_CLASS)
+const getSubtitleIndicatorNode = card => findByClass(card, SUBTITLE_INDICATOR_CLASS)
+const getPlayButtonNode = card => findByClass(card, PLAY_BUTTON_CLASS)
+const getOuterVideoDetailDiv = card => findByClass(card, OUTER_CARD_DETAIL_CLASS)
+const getTopImageWrapperDiv = card => findByClass(card, TOP_IMAGE_WRAPPER_CLASS)
 
-function getMaturityRatingNode(card) {
-	return findByClass(card, MATURITY_RATING_CLASS)
-}
+const getInnerVideoDetailDiv = card =>
+	getReviewNode(card)?.parentElement?.parentElement?.parentElement
+	?? getMaturityRatingNode(card)?.parentElement?.parentElement
+	?? getSubtitleIndicatorNode(card)?.parentElement?.parentElement
+	?? null
 
-function getSubtitleIndicatorNode(card) {
-	return findByClass(card, SUBTITLE_INDICATOR_CLASS)
-}
-
-function getPlayButtonNode(card) {
-	return findByClass(card, PLAY_BUTTON_CLASS)
-}
-
-function getOuterVideoDetailDiv(card) {
-	return findByClass(card, OUTER_CARD_DETAIL_CLASS)
-}
-
-function getTopImageWrapperDiv(card) {
-	return findByClass(card, TOP_IMAGE_WRAPPER_CLASS)
-}
-
-
-function getGridItemWrapperDiv(card) {
-	return findByClass(card, GRID_ITEM_WRAPPER_CLASS)
-}
-
-function getInnerVideoDetailDiv(card) {
-	return getReviewNode(card)?.parentElement?.parentElement?.parentElement
-		?? getMaturityRatingNode(card)?.parentElement?.parentElement
-		?? getSubtitleIndicatorNode(card)?.parentElement?.parentElement
-		?? null
-}
-
-function getTitle(card) {
+const getTitle = card => {
 	const title = getTitleNode(card)?.innerText
 	if (!title) return
 
 	return cleanTitle(title)
 }
 
-function cleanTitle(title) {
+const cleanTitle = (title) => {
 	let cleanTitle = title
 		.replace(SERIES_REGEX, "")
 		.replace(SERIES_NAME_REGEX, "")
@@ -207,21 +174,17 @@ function cleanTitle(title) {
 	return cleanTitle.trim()
 }
 
-function getSeriesTitle(rawTitle) {
+const getSeriesTitle = rawTitle => {
 	const title = rawTitle.replace(SERIES_REGEX, "")?.trim() ?? ""
 	log(`Cleaned Series title "${title}" from "${rawTitle}"`)
 	return title
 }
 
-function getTitleNode(card) {
-	return card?.querySelector(`.${TITLE_CLASS}`) || null
-}
+const getTitleNode = (card) => card?.querySelector(`.${TITLE_CLASS}`) || null
 
-function getYear(card) {
-	return getYearNode(card)?.innerText || null
-}
+const getYear = card => getYearNode(card)?.innerText || null
 
-function getYearNode(card) {
+const getYearNode = card => {
 	const children = getInnerVideoDetailDiv(card)?.children ?? []
 	for (const child of children) {
 		const nodeText = child?.innerText
@@ -230,7 +193,7 @@ function getYearNode(card) {
 	return null
 }
 
-function hasSeasonNode(card) {
+const hasSeasonNode = card => {
 	const children = getOuterVideoDetailDiv(card)?.children ?? []
 	for (const child of children) {
 		const nodeText = child?.innerText ?? ""
@@ -330,9 +293,8 @@ const findLeavingPrimeDate = (card) => {
 	return date.getTime()
 }
 
-function getRottenTomatoesRating(json) {
-	return json?.Ratings?.find(score => score.Source === ROTTEN_TOMATO_API_SOURCE)?.Value || null
-}
+const getRottenTomatoesRating = (json) =>
+	json?.Ratings?.find(score => score.Source === ROTTEN_TOMATO_API_SOURCE)?.Value || null
 
 function fetchOmdbResult(params, callback) {
 	urlWithParams(MOVIE_API_DOMAIN, params)
@@ -424,7 +386,7 @@ const parseAwardsCount = (awards) => {
 	return (!wins && !noms) ? undefined : `${wins}/${noms}`
 }
 
-function addScoreSpan(parent, ratings, hashKey, isOverlay = false) {
+const addScoreSpan = (parent, ratings, hashKey, isOverlay = false) => {
 	if (parent?.querySelector(`.${RATINGS_CLASS}`) !== null) return
 
 	maybeRemoveImdbSpan(parent)
@@ -436,13 +398,13 @@ function addScoreSpan(parent, ratings, hashKey, isOverlay = false) {
 	}
 }
 
-function alterScoreSpanForOverlay(span) {
+const alterScoreSpanForOverlay = (span) => {
 	const ratings = span?.querySelector(`.${RATINGS_CLASS}`)
 	ratings?.classList?.add(SCORE_SPAN_OVERLAY_CLASS)
 	return span
 }
 
-function maybeFetchRatings() {
+const maybeFetchActiveCardRating = () => {
 	const card = getActiveCard()
 	if (card === activeCard) return
 
@@ -451,9 +413,6 @@ function maybeFetchRatings() {
 	log(`New active card: `, card, ` -> ${getTitle(card)}`)
 
 	storage.load(() => fetchRatings(card))
-
-//	ratingsHash[TEST_TITLE] = TEST_DATA
-//	renderRating(TEST_TITLE)
 }
 
 function storeRatings(omdbApiRatings, hashKey) {
@@ -471,18 +430,12 @@ function clearRatings(hashKey) {
 	settings.set(Setting.OmdbResultsHash, hash)
 }
 
-function getRatings(hashKey) {
-	return settings.get(Setting.OmdbResultsHash)?.[hashKey]
-}
+const getRatings = hashKey => settings.get(Setting.OmdbResultsHash)?.[hashKey]
 
-function videoHashKey(title = "", year = "", type) {
+const videoHashKey = (title = "", year = "", type) => {
 	log("hashKey: ", `${title}|${year}|${type}`)
 	if (!title || !type) return null
 	return `${title}|${year}|${type}`
-}
-
-const runRatingsCheckRepeatedly = function() {
-	setInterval(maybeFetchRatings, 750)
 }
 
 const renderAllRatings = () => {
@@ -537,7 +490,7 @@ const renderInitialRatingsSecondaryPage = () => {
 	}
 }
 
-runRatingsCheckRepeatedly()
+setInterval(maybeFetchActiveCardRating, 1000)
 storage.load(() => {
 	setTimeout(renderAllRatings, 2000)
 	setInterval(renderAllRatings, 7500)

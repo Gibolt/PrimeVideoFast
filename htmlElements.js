@@ -40,6 +40,17 @@ const html = (() => {
 		return button
 	}
 
+	const imgButton = (src = "", fn = C.Noop, size) => {
+		const img = document.createElement("img")
+		img.src = src
+		if (typeof fn === "function") img.addEventListener(C.Action.Click, fn, false)
+		if (size) {
+			img.height = size
+			img.width = size
+		}
+		return img
+	}
+
 	const br = () => document.createElement("br")
 	const div = () => document.createElement("div")
 	const span = () => document.createElement("span")
@@ -54,6 +65,7 @@ const html = (() => {
 		br,
 		div,
 		span,
+		imgButton,
 	}
 	return publicApi
 })()

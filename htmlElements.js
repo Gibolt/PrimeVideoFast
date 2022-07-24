@@ -48,6 +48,14 @@ const html = (() => {
 		return button
 	}
 
+	const check = (initialValue, fn = C.Noop) => {
+		const check = document.createElement("input")
+		check.type = "checkbox"
+		check.checked = initialValue
+		if (typeof fn === "function") check.addEventListener(C.Action.Change, ({currentTarget}) => fn(currentTarget.checked), false)
+		return check
+	}
+
 	const imgButton = (src = "", fn = C.Noop, size) => {
 		const img = document.createElement("img")
 		img.src = src
@@ -79,6 +87,7 @@ const html = (() => {
 		br,
 		div,
 		span,
+		check,
 		imgButton,
 		kbd,
 	}

@@ -69,6 +69,9 @@ const settings = (() => {
 
 		// Playback rate to set when video begins
 		"InitialPlaybackSpeed" : 1.0,
+
+		// Click 'Skip Intro' Button when found, to skip repetitive video parts
+		"AutoSkipIntro" : false,
 	})
 
 	const KEYS = Object.keys(settingDefaultValues)

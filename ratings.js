@@ -19,6 +19,7 @@ const SUBTITLE_INDICATOR_CLASS = "tst-hover-subtitles"
 const PLAY_BUTTON_CLASS = "tst-play-button"
 const OUTER_CARD_DETAIL_CLASS = "dv-grid-beard-info"
 const TOP_IMAGE_WRAPPER_CLASS = "tst-packshot-link" // Video grid element on landing page
+const GRID_ITEM_WRAPPER_CLASS = "dvui-beardContainer" // Video grid element on secondary pages
 const GRID_ITEM_TITLE_CLASS = "av-beard-title-link" // Video grid title on secondary pages
 const LEAVING_PRIME_TEXT = "Leaving Prime on"
 
@@ -64,6 +65,8 @@ const LANGUAGE_SUFFIXES = LANGUAGES.reduce((all, language) => {
 		language,
 		`${language} Language`,
 		`${language} Subtitled`,
+		`${language} Dub`,
+		`${language} Dubbed`,
 		`Original ${language} Version`,
 	])
 	return all
@@ -90,6 +93,8 @@ const SERIES_NAME_REGEX = /[\s-,:]*(The|\s|Complete)*(Pilot|First|Second|Third|F
 const SEASON_EPISODE_REGEX = /[\s-]+S[0-9]+\s+E[0-9]+/
 const EPISODE_REGEX = /[\s-]+Episode\s+[0-9]+/
 const YEAR_REGEX = /\s+\(([0-9]{4})\)/
+
+const FREEVEE_INDICATOR = "Freevee — Free with ads"
 
 const processedCards = new Set()
 
@@ -184,7 +189,7 @@ const getTitleNode = (card) => card?.querySelector(`.${TITLE_CLASS}`) || null
 
 const getYear = card => getYearNode(card)?.innerText || null
 
-const getYearNode = card => {
+const getYearNode = (card) => {
 	const children = getInnerVideoDetailDiv(card)?.children ?? []
 	for (const child of children) {
 		const nodeText = child?.innerText
@@ -193,7 +198,7 @@ const getYearNode = card => {
 	return null
 }
 
-const hasSeasonNode = card => {
+const hasSeasonNode = (card) => {
 	const children = getOuterVideoDetailDiv(card)?.children ?? []
 	for (const child of children) {
 		const nodeText = child?.innerText ?? ""
@@ -202,11 +207,11 @@ const hasSeasonNode = card => {
 	return null
 }
 
-function isCtaForSeries(cta) {
+const isCtaForSeries = (cta) => {
 	return EPISODE_REGEX.test(cta) || SEASON_EPISODE_REGEX.test(cta)
 }
 
-function isTvSeries(card) {
+const isTvSeries = (card) => {
 	const title = getTitleNode(card)?.innerText
 	if (SERIES_REGEX.test(title)) return true
 	if (SERIES_NAME_REGEX.test(title)) return true
@@ -218,11 +223,11 @@ function isTvSeries(card) {
 	return isCtaForSeries(cta)
 }
 
-function cleanScore(score) {
+const cleanScore = (score) => {
 	return (!score || score === NA) ? NO_VALUE : score
 }
 
-function maybeRemoveImdbSpan(detailDiv) {
+const maybeRemoveImdbSpan = (detailDiv) => {
 	if (!detailDiv) return
 	for (const child of detailDiv.children) {
 		if (child.innerText?.includes("IMDb")) {
@@ -232,7 +237,14 @@ function maybeRemoveImdbSpan(detailDiv) {
 	}
 }
 
-function fetchRatings(card) {
+const maybeRemoveFreeveeSpan = (card) => {
+	if (!card) return
+	const spans = card.getElementsByTagName('span') ?? []
+	const span = [...spans].find((child) => child.innerText === FREEVEE_INDICATOR)
+	span?.remove()
+}
+
+const fetchRatings = (card) => {
 	const title = getTitle(card)
 	if (!title) return
 
@@ -296,20 +308,20 @@ const findLeavingPrimeDate = (card) => {
 const getRottenTomatoesRating = (json) =>
 	json?.Ratings?.find(score => score.Source === ROTTEN_TOMATO_API_SOURCE)?.Value || null
 
+const urlWithParams = (uri, params = {}) => {
+	const url = new URL(uri)
+	url.search = new URLSearchParams(params).toString()
+	return {
+		fetch: () => fetch(url)
+	}
+}
+
 function fetchOmdbResult(params, callback) {
 	urlWithParams(MOVIE_API_DOMAIN, params)
 		.fetch()
 		.then(data => data.json())
 		.then(callback)
 		.catch(error => log("Request failed", error))
-}
-
-function urlWithParams(uri, params = {}) {
-	const url = new URL(uri)
-	url.search = new URLSearchParams(params).toString()
-	return {
-		fetch: () => fetch(url)
-	}
 }
 
 // Leaving date may be added later
@@ -342,12 +354,13 @@ function renderRating(card, ratings, hashKey) {
 	const outerDetailDiv = getOuterVideoDetailDiv(card)
 	const topImageWrapperDiv = getTopImageWrapperDiv(card)
 
+	maybeRemoveFreeveeSpan(card)
 	addScoreSpan(innerDetailDiv, ratings, hashKey)
 	addScoreSpan(outerDetailDiv, ratings, hashKey)
 	if (!outerDetailDiv) addScoreSpan(topImageWrapperDiv, ratings, hashKey, true)
 }
 
-function createScoreSpan({metacritic, imdb, rottenTomatoes, leavingPrimeDate, awards} = {}, hashKey) {
+const createScoreSpan = ({metacritic, imdb, rottenTomatoes, leavingPrimeDate, awards} = {}, hashKey) => {
 	const ratingsContainer = html.toElement(RATINGS_HTML)
 	ratingsContainer.querySelector(`.${ROTTEN_TOMATOES_CLASS}`).innerText = rottenTomatoes
 	ratingsContainer.querySelector(`.${METACRITIC_CLASS}`).innerText = metacritic

@@ -4,7 +4,6 @@ const createPopupUi = () => {
 	const myOmdbApiKey = settings.get(Setting.OmdbApiKey)
 
 	const PLAYBACK_SPEED_TITLE = i18n("video_playback_speed_title")
-	const PLAYBACK_SPEED_CONTROL_TITLE = i18n("video_playback_speed_control_title")
 	const playbackSpeed = settings.get(Setting.InitialPlaybackSpeed)
 
 	const omdbSection = createOmdbSection(myOmdbApiKey)
@@ -22,14 +21,14 @@ const createPopupUi = () => {
 	document.body.append(...[
 		omdbSection,
 		html.br(),
+		...getActionInstructions(),
+		html.br(),
 		PLAYBACK_SPEED_TITLE,
 		html.br(),
 		playbackSpeedBox,
 		" x",
 		html.br(),
-		PLAYBACK_SPEED_CONTROL_TITLE,
-		html.br(),
-		...getActionInstructions(),
+		...enableSkipIntroSection()
 	])
 }
 
@@ -77,7 +76,18 @@ const createOmdbSection = (apiKey, forceCreate = false) => {
 const getActionInstructions = () => {
 	const INCREASE = i18n('video_playback_speed_increase')
 	const DECREASE = i18n('video_playback_speed_decrease')
-	return [html.kbd('+'), ' ', INCREASE, ' / ', html.kbd('-'), ' ', DECREASE]
+	const TITLE = i18n("video_playback_speed_control_title")
+	return [TITLE, html.br(), html.kbd('+'), ' ', INCREASE, ' / ', html.kbd('-'), ' ', DECREASE]
+}
+
+const enableSkipIntroSection = () => {
+	const enabled = settings.get(Setting.AutoSkipIntro)
+	const title = i18n('auto_skip_intro_title')
+	const check = html.check(enabled, (enable) => {
+		settings.set(Setting.AutoSkipIntro, enable)
+	})
+	html.styles(check, { height: "20px", width: "20px", outline: "3px solid var(--nc-lk-1)", "border-radius": "5px", "outline-style": "auto" })
+	return [title, ' ', check]
 }
 
 storage.load(createPopupUi)

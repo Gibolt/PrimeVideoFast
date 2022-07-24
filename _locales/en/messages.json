@@ -12,6 +12,8 @@
 	"omdb_register_cta": {"message": "Go Register"},
 	"omdb_edit_api_key_title": {"message": "Edit OMDB Key"},
 
+	"auto_skip_intro_title": {"message": "Auto Skip Intro?"},
+
 	"video_playback_speed_control_title": {"message": "Speed Controls:"},
 	"video_playback_speed_controls": {"message": "+ Increase / - Decrease"},
 	"video_playback_speed_increase": {"message": "Increase"},

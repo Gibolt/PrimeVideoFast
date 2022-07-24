@@ -8,16 +8,21 @@ let playbackButtonPlus = null
 let playbackButtonMinus = null
 let playbackSpeedIndicator = null
 let videoPlayer = null
-let adChecker = null
-let adCheckerSkippable = null
+let adCheckerInterval = null
+let adCheckerSkippableInterval = null
 let preAdRate = null
+let skipIntroInterval = null
 
 const videoPlayerClass = "tst-video-overlay-player-html5"
 const adIndicatorClass = "atvwebplayersdk-adtimeindicator-text"
+const skipIntroClass = "atvwebplayersdk-skipelement-button"
 const infoBarClass = "atvwebplayersdk-infobar-container"
 const titleClass = "atvwebplayersdk-title-text"
 const topButtonsContainerClass = "atvwebplayersdk-hideabletopbuttons-container"
 const SKIP_TEXT = "Skip"
+
+const VIDEO_ACTION_BUTTON_IMDB_CLASS = "custom-imdb-link-button"
+const VIDEO_ACTION_BUTTON_RT_CLASS = "custom-rt-link-button"
 
 const getImdbSearchUrl = (title) => `https://www.imdb.com/find?q=${title}`
 const getImdbTitleUrl = (title) => {
@@ -47,16 +52,31 @@ const buttons = `
 		<button id="SpeedDown" class="btn btn-left" style="float: right; border-top-left-radius: 5px; border-bottom-left-radius: 5px;">&lt;&lt;</button>
 	</div>`
 
-const setupVideoPlaybackControl = function() {
+const resetVideoPlayer = () => {
+	clearInterval(adCheckerInterval)
+	clearInterval(adCheckerSkippableInterval)
+	clearInterval(skipIntroInterval)
+	adCheckerInterval = null
+	adCheckerSkippableInterval = null
+	skipIntroInterval = null
+	const buttonContainer = document.getElementsByClassName(topButtonsContainerClass)[0]?.children[0]
+	buttonContainer?.querySelector(`.${VIDEO_ACTION_BUTTON_IMDB_CLASS}`)?.remove()
+	buttonContainer?.querySelector(`.${VIDEO_ACTION_BUTTON_RT_CLASS}`)?.remove()
+}
+
+const setupVideoPlaybackControl = () => {
 	const click = C.Action.Click
 	const video = getMainVideoPlayer()
-	if (video === null || video === videoPlayer) {
-		clearInterval(adChecker)
-		clearInterval(adCheckerSkippable)
-		adChecker = null
-		adCheckerSkippable = null
+	if (video === videoPlayer) return
+	if (video === null) {
+		resetVideoPlayer()
+    	videoPlayer = video
 		return
 	}
+	if (video !== videoPlayer) {
+		resetVideoPlayer()
+	}
+	console.log("Video change:", video, videoPlayer)
 
     videoPlayer = video
 
@@ -95,28 +115,33 @@ const setupVideoPlaybackControl = function() {
 	})
 
 	const titleElement = document.getElementsByClassName(titleClass)[0]
-	if (titleElement?.innerText) {
+	console.log('title:', titleElement, `"${titleElement?.innerText}"`)
+	if (titleElement) setTimeout(() => {
+		console.log('title2:', titleElement, `"${titleElement?.innerText}"`)
+		if (!titleElement?.innerText) return
 		const title = titleElement.innerText
 		const imdbUrl = getImdbUrl(title)
 		const rtUrl = getRtUrl(title)
 		titleElement?.addEventListener('click', () => window.open(imdbUrl,"_blank"))
 		const imdbLogo = html.imgButton(C.Icon.IMDB, () => window.open(imdbUrl,"_blank"), 28)
 		const rtLogo = html.imgButton(RT_IMAGE, () => window.open(rtUrl,"_blank"), 28)
+		imdbLogo.classList.add(VIDEO_ACTION_BUTTON_IMDB_CLASS)
+		rtLogo.classList.add(VIDEO_ACTION_BUTTON_RT_CLASS)
 		imdbLogo.style.marginRight = '26px'
 		rtLogo.style.marginRight = '26px'
 		const buttonContainer = document.getElementsByClassName(topButtonsContainerClass)[0]?.children[0]
+		console.log('buttonContainer:', buttonContainer, imdbUrl, rtUrl)
 		if (rtUrl) buttonContainer?.prepend(rtLogo)
 		buttonContainer?.prepend(imdbLogo)
-	}
+	}, 5000)
 
 	console.log('Adding Ad checkers')
-	adChecker ??= setInterval(detectAndSkipAds, 2000)
-	adCheckerSkippable ??= setInterval(detectAndSkipPreroll, 2000)
+	adCheckerInterval ??= setInterval(detectAndSkipAds, 2000)
+	adCheckerSkippableInterval ??= setInterval(detectAndSkipPreroll, 2000)
+	skipIntroInterval ??= setInterval(detectAndSkipIntro, 2000)
 
 	updateRate()
 }
-
-
 
 const increaseRate = function() {
 	if (!canUpdate()) return
@@ -172,8 +197,16 @@ const detectAndSkipPreroll = () => {
 
 	let item = findChildContainingText(infoBar, SKIP_TEXT, true)
 	if (!item) return
-	console.log('Found skip: ', item)
+	console.log('Found skip preroll: ', item)
 	setTimeout(() => item?.click(), 2000)
+}
+
+const detectAndSkipIntro = () => {
+	const skipIntroButton = document.getElementsByClassName(skipIntroClass)[0]
+	if (!skipIntroButton) return
+
+	console.log('Found skip intro: ', skipIntroButton)
+	setTimeout(() => skipIntroButton?.click(), 100)
 }
 
 //.btn {

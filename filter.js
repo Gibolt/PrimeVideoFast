@@ -17,12 +17,13 @@ const maybeInsertAfterPageHeader = (element) => {
 
 const createFilters = () => {
 	const onChangeFilters = () => {
-		adjustCardsBasedOnFilters(paidCheck.checked, freeCheck.checked, adsCheck.checked, parseInt(minRating.value))
+		adjustCardsBasedOnFilters(paidCheck.checked, freeCheck.checked, adsCheck.checked, noRatingsCheck.checked, parseInt(minRating.value))
 	}
 
 	const paidCheck = html.check(true, onChangeFilters)
 	const freeCheck = html.check(true, onChangeFilters)
 	const adsCheck = html.check(true, onChangeFilters)
+	const noRatingsCheck = html.check(true, onChangeFilters)
 	const minRatingSet = html.title(`(${DEFAULT_MIN_RATING})`)
 	const minRating = html.range(DEFAULT_MIN_RATING, 1, 100, (a) => {
 		console.log(minRating, a)
@@ -35,7 +36,8 @@ const createFilters = () => {
 		html.title("Paid: "), paidCheck,
 		html.title("Free: "), freeCheck,
 		html.title("Ads: "), adsCheck,
-		html.title("Min Rating: "), minRating, minRatingSet
+		html.title("Min Rating: "), minRating, minRatingSet,
+		html.title("Ratingless: "), noRatingsCheck
 	);
 
 	const titleRow = html.flexRow(html.h2('Filters'), html.img(C.Icon.LOGO, 20))
@@ -66,11 +68,11 @@ const setDisplayedIB = (item, visible) => {
 	html.style(item, 'display', visible ? 'inline-block' : 'none')
 }
 
-const ratingsMeetBar = (minRating, ratings) => {
+const ratingsMeetBar = (minRating, noRatings, ratings) => {
 	if (!ratings) return
 	const { metacritic, imdb, rottenTomatoes } = ratings
 	if (metacritic === '-' && imdb === '-' && rottenTomatoes === '-') {
-		return true
+		return noRatings
 	}
 
 	if (metacritic !== '-' && parseFloat(metacritic) >= minRating) {
@@ -89,7 +91,7 @@ const ratingsMeetBar = (minRating, ratings) => {
 // TODO: Run this on any newly added cards
 // TODO: Make these properties global
 // TODO: Add these to settings
-const adjustCardsBasedOnFilters = (paid, free, ads, minRating) => {
+const adjustCardsBasedOnFilters = (paid, free, ads, allowNoRatings, minRating) => {
 	const innerCards = document.getElementsByClassName(TOP_IMAGE_WRAPPER_CLASS)
 	const hashKeys = Object.keys(settings.get(Setting.OmdbResultsHash))
 	for (const card of innerCards) {
@@ -111,7 +113,7 @@ const adjustCardsBasedOnFilters = (paid, free, ads, minRating) => {
 			continue
 		}
 
-		if (minRating > 1) {
+		if (minRating > 1 || !allowNoRatings) {
 			const ariaTitle = card?.firstElementChild?.ariaLabel
 			if (ariaTitle) {
 				const title = cleanTitle(ariaTitle)
@@ -120,7 +122,7 @@ const adjustCardsBasedOnFilters = (paid, free, ads, minRating) => {
 					if (matchingKey) {
 						const ratings = getRatings(matchingKey)
 						if (ratings) {
-							const meets = ratingsMeetBar(minRating, ratings)
+							const meets = ratingsMeetBar(minRating, allowNoRatings, ratings)
 							setDisplayedIB(wrapper, meets)
 							continue
 						}

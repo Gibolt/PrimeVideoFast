@@ -57,6 +57,8 @@ const SUFFIX_EXTENDED_EDITION_DASH = "- Extended Edition"
 const SUFFIX_EXTENDED_EDITION = "Extended Edition"
 const SUFFIX_BONUS_FEATURE = "(Plus Bonus Feature)"
 const SUFFIX_SILENT = "(Silent)"
+const SUFFIX_SUBSTITLES = "(Subtitles)"
+const SUFFIX_SUBSTITLED = "(Subtitled)"
 const SUFFIX_FEATURE = "(Feature)"
 const SUFFIX_THEATRICAL = "(Theatrical)"
 const NA = "N/A"
@@ -67,6 +69,7 @@ const LANGUAGE_SUFFIXES = LANGUAGES.reduce((all, language) => {
 		language,
 		`${language} Language`,
 		`${language} Subtitled`,
+		`${language} Subtitles`,
 		`${language} Dub`,
 		`${language} Dubbed`,
 		`Original ${language} Version`,
@@ -168,6 +171,8 @@ const cleanTitle = (title) => {
 		.replace(SUFFIX_EXTENDED_EDITION, "")
 		.replace(SUFFIX_BONUS_FEATURE, "")
 		.replace(SUFFIX_SILENT, "")
+		.replace(SUFFIX_SUBSTITLES, "")
+		.replace(SUFFIX_SUBSTITLED, "")
 		.replace(SUFFIX_FEATURE, "")
 		.replace(SUFFIX_THEATRICAL, "")
 		.replace(SUFFIX_UK, "")

@@ -23,3 +23,16 @@ const findParentByClass = (element, classname) => {
 		item = item.parentElement
 	} while (element && element !== document.body)
 }
+
+
+const findParentByTagName = (element, tag, classname = '') => {
+	if (!element) return
+	let item = element
+	do {
+		if (item.tagName?.toLowerCase() === tag) {
+			if (!classname)	return item
+			else if (item.classList.contains(classname)) return item
+		}
+		item = item.parentElement
+	} while (element && element !== document.body)
+}

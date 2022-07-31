@@ -52,6 +52,7 @@ const html = (() => {
 		const check = document.createElement("input")
 		check.type = "checkbox"
 		check.checked = initialValue
+		html.styles(check, { height: "20px", width: "20px", outline: "3px solid var(--nc-lk-1)", "border-radius": "5px", "outline-style": "auto" })
 		if (typeof fn === "function") check.addEventListener(C.Action.Change, ({currentTarget}) => fn(currentTarget.checked), false)
 		return check
 	}
@@ -68,12 +69,27 @@ const html = (() => {
 	}
 
 	const br = () => document.createElement("br")
-	const div = () => document.createElement("div")
-	const span = () => document.createElement("span")
+	const div = (className) => {
+		const div = document.createElement("div")
+		if (className) div.className = className
+		return div
+	}
+	const span = (className) => {
+		const span = document.createElement("span")
+		if (className) span.className = className
+		return span
+	}
 	const kbd = (text) => {
 		const kbd = document.createElement("kbd")
 		kbd.innerText = text
 		return kbd
+	}
+
+	const title = (text) => {
+		const title = document.createElement("p")
+		title.innerText = text
+		html.styles(title, {"font-size": "16px", "font-weight": 600})
+		return title
 	}
 
 	const publicApi = {
@@ -90,6 +106,8 @@ const html = (() => {
 		check,
 		imgButton,
 		kbd,
+
+		title,
 	}
 	return publicApi
 })()

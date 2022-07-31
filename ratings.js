@@ -21,6 +21,7 @@ const OUTER_CARD_DETAIL_CLASS = "dv-grid-beard-info"
 const TOP_IMAGE_WRAPPER_CLASS = "tst-packshot-link" // Video grid element on landing page
 const GRID_ITEM_WRAPPER_CLASS = "dvui-beardContainer" // Video grid element on secondary pages
 const GRID_ITEM_TITLE_CLASS = "av-beard-title-link" // Video grid title on secondary pages
+const CAPTIONS_CLASS = "atvwebplayersdk-captions-text" // Caption container
 const LEAVING_PRIME_TEXT = "Leaving Prime on"
 
 // Extension UI Constants
@@ -57,6 +58,7 @@ const SUFFIX_EXTENDED_EDITION = "Extended Edition"
 const SUFFIX_BONUS_FEATURE = "(Plus Bonus Feature)"
 const SUFFIX_SILENT = "(Silent)"
 const SUFFIX_FEATURE = "(Feature)"
+const SUFFIX_THEATRICAL = "(Theatrical)"
 const NA = "N/A"
 
 const LANGUAGES = ['English', 'Chinese', 'French', 'Italian', 'Korean', 'Japanese', 'Spanish', 'Polish', 'Russian']
@@ -124,7 +126,7 @@ const getRatingSpanClass = (hashKey) => {
 	return `${RATINGS_CLASS}-${videoKey}`
 }
 
-const findByClass = (parent, className) => parent?.querySelector(`.${className}`) || null
+const findByClass = (parent, className) => parent?.querySelector(`.${className}`) ?? null
 
 const getReviewNode = card => findByClass(card, REVIEWS_CLASS)
 const getMaturityRatingNode = card => findByClass(card, MATURITY_RATING_CLASS)
@@ -167,6 +169,7 @@ const cleanTitle = (title) => {
 		.replace(SUFFIX_BONUS_FEATURE, "")
 		.replace(SUFFIX_SILENT, "")
 		.replace(SUFFIX_FEATURE, "")
+		.replace(SUFFIX_THEATRICAL, "")
 		.replace(SUFFIX_UK, "")
 		.replace(PREFIX_MARVEL, "")
 		.replace(PREFIX_JOHN_GRISHAM, "")
@@ -507,6 +510,7 @@ setInterval(maybeFetchActiveCardRating, 1000)
 storage.load(() => {
 	setTimeout(renderAllRatings, 2000)
 	setInterval(renderAllRatings, 7500)
+	setTimeout(maybeAddFiltersToHomepage, 1000)
 })
 
 const IMAGE_STYLE = `"vertical-align: middle; width:${IMAGE_SIZE}${IMPORTANT}; height:${IMAGE_SIZE}${IMPORTANT}"`

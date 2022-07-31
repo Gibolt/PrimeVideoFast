@@ -86,7 +86,6 @@ const enableSkipIntroSection = () => {
 	const check = html.check(enabled, (enable) => {
 		settings.set(Setting.AutoSkipIntro, enable)
 	})
-	html.styles(check, { height: "20px", width: "20px", outline: "3px solid var(--nc-lk-1)", "border-radius": "5px", "outline-style": "auto" })
 	return [title, ' ', check]
 }
 

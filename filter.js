@@ -8,40 +8,69 @@ const ADS_ITEM_TIP = "tst-ec-white"
 
 const FILTER_SECTION_CLASS = "custom-filter-section"
 
-const DEFAULT_MIN_RATING = 1
-
 const maybeInsertAfterPageHeader = (element) => {
 	const header = document.getElementsByClassName(INGRESS_HEADER_CLASS)[0]
 	header?.after(element)
 }
 
-const createFilters = () => {
-	const onChangeFilters = () => {
-		adjustCardsBasedOnFilters(paidCheck.checked, freeCheck.checked, adsCheck.checked, noRatingsCheck.checked, parseInt(minRating.value))
-	}
+const filterCheck = (filter) => {
+	const value = appliedFilters[filter];
+	return html.check(value, (checked) => {
+		appliedFilters[filter] = checked;
+		adjustCardsBasedOnFilters()
+	})
+}
 
-	const paidCheck = html.check(true, onChangeFilters)
-	const freeCheck = html.check(true, onChangeFilters)
-	const adsCheck = html.check(true, onChangeFilters)
-	const noRatingsCheck = html.check(true, onChangeFilters)
-	const minRatingSet = html.title(`(${DEFAULT_MIN_RATING})`)
-	const minRating = html.range(DEFAULT_MIN_RATING, 1, 100, (a) => {
-		console.log(minRating, a)
-		onChangeFilters()
+const noApiKeyWarning = () => {
+	if (settings.get(Setting.OmdbApiKey)) return html.span()
+
+	const apiFlagSection = ApiWarning()
+	const warning = apiFlagSection.children[0]
+
+	const omdbApiKeyBox = html.textbox(C.Omdb.KeyHint)
+	html.style(omdbApiKeyBox, 'background-color', '#000000')
+	omdbApiKeyBox.addEventListener(C.Action.Change, ({ target }) => {
+		const newValue = target.value.trim()
+		if (!newValue || newValue.length < 8) return
+
+		settings.set(Setting.OmdbApiKey, newValue)
+		warning.innerText = 'Api Key set! Reloading page...'
+		setTimeout(() => window.location.reload(), 2000)
 	})
-	minRating.addEventListener(C.Action.Input, ({currentTarget}) => {
-		minRatingSet.innerText = `(${currentTarget.value})`
+
+	warning.prepend(html.img(C.Icon.LOGO, 20))
+	warning.append(omdbApiKeyBox)
+	return apiFlagSection
+}
+
+const createFilters = () => {
+	const { minRating } = appliedFilters
+	const paidCheck = filterCheck('paid')
+	const freeCheck = filterCheck('free')
+	const adsCheck = filterCheck('ads')
+	const noRatingsCheck = filterCheck('unrated')
+	const ratingNumber = html.title(`(${minRating})`)
+	const ratingSlider = html.range(minRating, 1, 100, (rating) => {
+		appliedFilters.minRating = parseInt(rating)
+		adjustCardsBasedOnFilters()
 	})
+	ratingSlider.addEventListener(C.Action.Input, ({currentTarget}) => {
+		ratingNumber.innerText = `(${currentTarget.value})`
+	})
+	if (!settings.get(Setting.OmdbApiKey)) {
+		ratingSlider.disabled = true
+		noRatingsCheck.disabled = true
+	}
 	const filterRow = html.flexRow(
 		html.title("Paid: "), paidCheck,
 		html.title("Free: "), freeCheck,
 		html.title("Ads: "), adsCheck,
-		html.title("Min Rating: "), minRating, minRatingSet,
-		html.title("Ratingless: "), noRatingsCheck
+		html.title("Min Rating: "), ratingSlider, ratingNumber,
+		html.title("No Ratings: "), noRatingsCheck
 	);
 
 	const titleRow = html.flexRow(html.h2('Filters'), html.img(C.Icon.LOGO, 20))
-	const container = html.flexColumn(titleRow, filterRow)
+	const container = html.flexColumn(noApiKeyWarning(), titleRow, filterRow)
 	container.className = FILTER_SECTION_CLASS
 	html.styles(container, {
 		"align-items": "baseline",
@@ -91,9 +120,10 @@ const ratingsMeetBar = (minRating, noRatings, ratings) => {
 // TODO: Run this on any newly added cards
 // TODO: Make these properties global
 // TODO: Add these to settings
-const adjustCardsBasedOnFilters = (paid, free, ads, allowNoRatings, minRating) => {
+const adjustCardsBasedOnFilters = () => {
 	const innerCards = document.getElementsByClassName(TOP_IMAGE_WRAPPER_CLASS)
 	const hashKeys = Object.keys(settings.get(Setting.OmdbResultsHash))
+	const { paid, free, ads, unrated, minRating } = appliedFilters
 	for (const card of innerCards) {
 		const priceTip = card.getElementsByClassName(ITEM_PRICE_TIP)[0]
 		const list = priceTip?.classList
@@ -113,7 +143,7 @@ const adjustCardsBasedOnFilters = (paid, free, ads, allowNoRatings, minRating) =
 			continue
 		}
 
-		if (minRating > 1 || !allowNoRatings) {
+		if (minRating > 1 || !unrated) {
 			const ariaTitle = card?.firstElementChild?.ariaLabel
 			if (ariaTitle) {
 				const title = cleanTitle(ariaTitle)
@@ -122,7 +152,7 @@ const adjustCardsBasedOnFilters = (paid, free, ads, allowNoRatings, minRating) =
 					if (matchingKey) {
 						const ratings = getRatings(matchingKey)
 						if (ratings) {
-							const meets = ratingsMeetBar(minRating, allowNoRatings, ratings)
+							const meets = ratingsMeetBar(minRating, unrated, ratings)
 							setDisplayedIB(wrapper, meets)
 							continue
 						}

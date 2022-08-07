@@ -1,7 +1,4 @@
 
-let activeCard = null
-const fetchingHash = {}
-
 // API Constants
 const MOVIE_API_DOMAIN = "https://www.omdbapi.com/"
 const NO_MOVIE_ERROR = "Movie not found!"
@@ -57,8 +54,9 @@ const SUFFIX_EXTENDED_EDITION_DASH = "- Extended Edition"
 const SUFFIX_EXTENDED_EDITION = "Extended Edition"
 const SUFFIX_BONUS_FEATURE = "(Plus Bonus Feature)"
 const SUFFIX_SILENT = "(Silent)"
-const SUFFIX_SUBSTITLES = "(Subtitles)"
-const SUFFIX_SUBSTITLED = "(Subtitled)"
+const SUFFIX_SUBTITLES = "(Subtitles)"
+const SUFFIX_SUBTITLED = "(Subtitled)"
+const SUFFIX_IN_COLOR = "(In Color)"
 const SUFFIX_FEATURE = "(Feature)"
 const SUFFIX_THEATRICAL = "(Theatrical)"
 const NA = "N/A"
@@ -171,8 +169,9 @@ const cleanTitle = (title) => {
 		.replace(SUFFIX_EXTENDED_EDITION, "")
 		.replace(SUFFIX_BONUS_FEATURE, "")
 		.replace(SUFFIX_SILENT, "")
-		.replace(SUFFIX_SUBSTITLES, "")
-		.replace(SUFFIX_SUBSTITLED, "")
+		.replace(SUFFIX_SUBTITLES, "")
+		.replace(SUFFIX_SUBTITLED, "")
+		.replace(SUFFIX_IN_COLOR, "")
 		.replace(SUFFIX_FEATURE, "")
 		.replace(SUFFIX_THEATRICAL, "")
 		.replace(SUFFIX_UK, "")
@@ -531,5 +530,5 @@ const RATINGS_HTML = `
 		<img class="${TROPHY_ICON_CLASS}" src="${C.Icon.TROPHY}" style=${HIDDEN_IMAGE_STYLE}/>
 		<span class="${TROPHY_CLASS}" style="display:none"></span>
 		<img class="${DATE_WARNING_ICON_CLASS}" src="${C.Icon.WARNING}" style=${HIDDEN_IMAGE_STYLE}/>
-		<span class="${DATE_WARNING_CLASS}" style="display:none" title="Leaving Soon"></span>
+		<span class="${DATE_WARNING_CLASS}" style="display:none" title="Leaving Soon"></>
 	</span>`

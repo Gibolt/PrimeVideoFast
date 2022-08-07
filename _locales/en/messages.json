@@ -7,7 +7,7 @@
 		"message": "Prime Video Speed and Ratings",
 		"description": "Name of extension"
 	},
-	"omdb_api_key_hint": {"message": "Type your key"},
+	"omdb_api_key_hint": {"message": "Paste your key here"},
 	"omdb_api_key_title": {"message": "OMDB Api Key"},
 	"omdb_register_cta": {"message": "Go Register"},
 	"omdb_edit_api_key_title": {"message": "Edit OMDB Key"},
